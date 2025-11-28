@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -9,10 +9,39 @@ import SidebarLayout from '../../../components/SidebarLayout';
 export default function AccountScreen() {
   const { user, logout } = useContext(AuthContext);
   const router = useRouter();
+  const isLoggingOut = useRef(false);
 
-  const handleLogout = () => {
-    console.log('Đã đăng xuất');
-    router.replace('/signin');
+  const handleLogout = async () => {
+    if (isLoggingOut.current) return;
+
+    try {
+      isLoggingOut.current = true;
+      await logout();
+
+      // Sử dụng requestAnimationFrame để đảm bảo navigation xảy ra sau khi React đã render
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          try {
+            router.replace('/signin');
+          } catch (error) {
+            // Fallback: thử lại sau một chút nếu router chưa sẵn sàng
+            setTimeout(() => {
+              try {
+                router.replace('/signin');
+              } catch (e) {
+                // Nếu vẫn lỗi, reload page (chỉ trên web)
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/signin';
+                }
+              }
+            }, 200);
+          }
+        }, 50);
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+      isLoggingOut.current = false;
+    }
   }
 
 

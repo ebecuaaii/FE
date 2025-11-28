@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosInstance } from 'axios';
+import { getToken } from '../utils/secureStore';
 
-const API_BASE_URL = 'http://192.168.1.13:5267';
+const API_BASE_URL = 'http://10.0.8.132:5267';
 
 const axiosInstance: AxiosInstance = axios.create({
     baseURL: API_BASE_URL,
@@ -13,7 +13,7 @@ const axiosInstance: AxiosInstance = axios.create({
 // Add token to requests
 axiosInstance.interceptors.request.use(
     async (config) => {
-        const token = await AsyncStorage.getItem('authToken');
+        const token = await getToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -57,9 +57,7 @@ export const authService = {
     async signUp(data: SignUpRequest): Promise<AuthResponse> {
         try {
             const response = await axiosInstance.post<AuthResponse>('/api/auth/register', data);
-            if (response.data.accessToken) {
-                await AsyncStorage.setItem('authToken', response.data.accessToken);
-            }
+            // Token sẽ được lưu bởi AuthContext sau khi signUp
             return response.data;
         } catch (error) {
             throw error;
@@ -74,10 +72,7 @@ export const authService = {
             const backendData = response.data;
             const token = backendData.token || backendData.accessToken;
 
-            if (token) {
-                await AsyncStorage.setItem('authToken', token);
-            }
-
+            // Token sẽ được lưu bởi AuthContext sau khi signIn
             // Chuyển đổi sang format chuẩn
             return {
                 accessToken: token,
@@ -98,11 +93,12 @@ export const authService = {
     },
 
     async logout(): Promise<void> {
-        await AsyncStorage.removeItem('authToken');
+        // Token sẽ được xóa bởi AuthContext
+        // Không cần làm gì ở đây
     },
 
     async getAuthToken(): Promise<string | null> {
-        return await AsyncStorage.getItem('authToken');
+        return await getToken();
     },
 };
 

@@ -21,7 +21,6 @@ const SignInScreen = (props: Props) => {
         setLoading(true);
         try {
             await login(username, password);
-            alert('Đăng nhập thành công!');
             router.replace('/drawer/(tabs)/home');
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || 'Đăng nhập thất bại';

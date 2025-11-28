@@ -14,10 +14,16 @@ const Tab = createBottomTabNavigator();
 export default function TabsLayout() {
     const { user } = useContext(AuthContext);
 
-    // Kiểm tra role từ nhiều nguồn
-    const userRole = user?.role || user?.userRole || user?.Role;
-    const isAdminOrManager = userRole === 'admin' || userRole === 'manager' ||
-        user?.username === 'admin' || user?.username === 'manager';
+    // Kiểm tra role từ nhiều nguồn (hỗ trợ cả uppercase và lowercase)
+    const userRole = user?.role || user?.userRole || user?.Role || user?.roleName;
+    const userRoleLower = userRole?.toLowerCase();
+    const isAdminOrManager = 
+        userRoleLower === 'admin' || 
+        userRoleLower === 'manager' ||
+        userRole === 'Admin' ||
+        userRole === 'Manager' ||
+        user?.username === 'admin' || 
+        user?.username === 'manager';
 
     // Chọn component dựa trên role
     const HomeComponent = isAdminOrManager ? AdminHomeScreen : HomeScreen;

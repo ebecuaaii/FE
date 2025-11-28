@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from "react-native";
 import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, Settings2, Wrench, CircleDollarSign, CircleEqual, UserRound, PackageCheck, TagsIcon, CopyPlus, CircleMinus, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import SidebarLayout from "../../../components/SidebarLayout";
 import { employeeService, Employee } from "../../../services/employeeService";
 
 export default function AdminTaskScreen() {
+    const router = useRouter();
     const [expanded, setExpanded] = useState({
         employee: true,
         schedule: true,
@@ -19,13 +21,6 @@ export default function AdminTaskScreen() {
     const [employeeLoading, setEmployeeLoading] = useState(false);
     const [employeeError, setEmployeeError] = useState<string | null>(null);
 
-    // Debug: log khi employees state thay đổi
-    useEffect(() => {
-        console.log("Employees state changed:", employees.length, "items");
-        if (employees.length > 0) {
-            console.log("First employee in state:", JSON.stringify(employees[0], null, 2));
-        }
-    }, [employees]);
 
     const toggle = (key: ExpandKey) => {
         setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -38,7 +33,6 @@ export default function AdminTaskScreen() {
 
         try {
             const data = await employeeService.getEmployees();
-            console.log("Employees data received:", JSON.stringify(data, null, 2));
             setEmployees(data);
             if (!data.length) {
                 setEmployeeError("Chưa có dữ liệu nhân viên");
@@ -60,12 +54,6 @@ export default function AdminTaskScreen() {
     };
 
     const renderEmployeeRow = (employee: Employee, index: number) => {
-        // Debug: log employee object để xem cấu trúc
-        if (index === 0) {
-            console.log("First employee object:", JSON.stringify(employee, null, 2));
-            console.log("Employee keys:", Object.keys(employee));
-        }
-
         const displayName =
             employee.fullname ||
             employee.fullName ||
@@ -96,10 +84,6 @@ export default function AdminTaskScreen() {
         const secondaryInfo = infoParts.length > 0
             ? infoParts.join(" • ")
             : "Chưa cập nhật";
-
-        if (index === 0) {
-            console.log("Final secondaryInfo:", secondaryInfo);
-        }
 
         const initials = (displayName || "U")
             .split(" ")
@@ -149,7 +133,13 @@ export default function AdminTaskScreen() {
 
                 {expanded.schedule && (
                     <View style={styles.cardRow}>
-                        <TaskCard icon={<CalendarCheck size={32} />} label="Xếp lịch làm việc" />
+                        <TaskCard
+                            icon={<CalendarCheck size={32} />}
+                            label="Xếp lịch làm việc"
+                            onPress={() => {
+                                router.push("/function/shift-schedule");
+                            }}
+                        />
                         <TaskCard icon={<CalendarDays size={32} />} label="Lịch làm việc theo ca" />
                         <TaskCard icon={<CalendarRange size={32} />} label="Lịch làm việc theo nhân viên" />
                         <TaskCard icon={<FolderCheck size={32} />} label="Phê duyệt lịch làm việc" />
@@ -233,20 +223,13 @@ export default function AdminTaskScreen() {
 
                         {!employeeLoading && !employeeError && (
                             <ScrollView style={styles.employeeList}>
-                                {(() => {
-                                    console.log("Rendering employees:", employees.length, "items");
-                                    if (employees.length === 0) {
-                                        return (
-                                            <View style={styles.modalStateContainer}>
-                                                <Text style={styles.modalErrorText}>Không có dữ liệu nhân viên</Text>
-                                            </View>
-                                        );
-                                    }
-                                    return employees.map((employee, index) => {
-                                        console.log(`Rendering employee ${index}:`, employee);
-                                        return renderEmployeeRow(employee, index);
-                                    });
-                                })()}
+                                {employees.length === 0 ? (
+                                    <View style={styles.modalStateContainer}>
+                                        <Text style={styles.modalErrorText}>Không có dữ liệu nhân viên</Text>
+                                    </View>
+                                ) : (
+                                    employees.map((employee, index) => renderEmployeeRow(employee, index))
+                                )}
                             </ScrollView>
                         )}
                     </View>

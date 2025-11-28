@@ -26,3 +26,40 @@ export async function removeToken() {
         await SecureStore.deleteItemAsync("accessToken");
     }
 }
+
+// User data storage functions
+export async function saveUserData(user: any) {
+    const userData = JSON.stringify(user);
+    if (isWeb) {
+        localStorage.setItem("userData", userData);
+    } else {
+        await SecureStore.setItemAsync("userData", userData);
+    }
+}
+
+export async function getUserData(): Promise<any | null> {
+    try {
+        let userData: string | null;
+        if (isWeb) {
+            userData = localStorage.getItem("userData");
+        } else {
+            userData = await SecureStore.getItemAsync("userData");
+        }
+        
+        if (userData) {
+            return JSON.parse(userData);
+        }
+        return null;
+    } catch (error) {
+        console.error("Error getting user data:", error);
+        return null;
+    }
+}
+
+export async function removeUserData() {
+    if (isWeb) {
+        localStorage.removeItem("userData");
+    } else {
+        await SecureStore.deleteItemAsync("userData");
+    }
+}

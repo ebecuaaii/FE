@@ -23,7 +23,9 @@ const AdminHomeScreen = () => {
 
     const user = authContext?.user;
     const userName = user?.fullname || user?.username || 'Admin';
-    const userRole = user?.role === 'admin' ? 'Quản trị viên' : 'Quản lý';
+    const userRoleValue = user?.role || user?.userRole || user?.Role || user?.roleName;
+    const userRoleLower = userRoleValue?.toLowerCase();
+    const userRole = userRoleLower === 'admin' ? 'Quản trị viên' : 'Quản lý';
 
     const adminActions = [
         { id: '1', title: 'Quản lý nhân viên', color: '#0d9488' },
