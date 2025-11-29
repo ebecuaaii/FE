@@ -132,15 +132,41 @@ export const shiftService = {
     },
 
     // POST /api/Shifts/assign - Phân công ca làm việc cho nhân viên
-    async assignShift(data: AssignShiftRequest): Promise<ShiftAssignment> {
-        const response = await api.post("/api/Shifts/assign", data);
+    async assignShift(data: AssignShiftRequest): Promise<any> {
+        const response = await api.post("/api/Shifts/assign?returnList=true", data);
+
+        if (response.data.assignments) {
+            // Có list assignments mới trong response
+            return {
+                newAssignment: normalizeAssignment(response.data.newAssignment),
+                allAssignments: asArray(response.data.assignments).map(normalizeAssignment)
+            };
+        }
+
+        // Fallback nếu không có returnList
         return normalizeAssignment(response.data);
     },
 
-    // GET /api/Shifts/assignments - Xem tất cả phân công ca làm việc
+    // GET /api/Shifts/assignments/list - Xem tất cả phân công ca làm việc (endpoint mới)
     async getAssignments(params?: GetAssignmentsParams): Promise<ShiftAssignment[]> {
-        const response = await api.get("/api/Shifts/assignments", { params });
+        const response = await api.get("/api/Shifts/assignments/list");
         return asArray(response.data).map(normalizeAssignment);
+    },
+
+    // GET /api/Shifts/assignments/list - Lấy danh sách assignments với filter ngày
+    async getAssignmentsList(params?: {
+        date?: string;        // YYYY-MM-DD
+        fromDate?: string;    // YYYY-MM-DD  
+        toDate?: string;      // YYYY-MM-DD
+    }): Promise<ShiftAssignment[]> {
+        const response = await api.get("/api/Shifts/assignments/list", { params });
+        return asArray(response.data).map(normalizeAssignment);
+    },
+
+    // Debug endpoint để kiểm tra data
+    async getAssignmentsDebug(): Promise<any> {
+        const response = await api.get("/api/Shifts/assignments/debug");
+        return response.data;
     },
 
     // GET /api/Shifts/assignments/{id} - Lấy thông tin assignment theo ID

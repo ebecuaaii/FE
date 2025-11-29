@@ -140,9 +140,27 @@ export default function AdminTaskScreen() {
                                 router.push("/function/shift-schedule");
                             }}
                         />
-                        <TaskCard icon={<CalendarDays size={32} />} label="Lịch làm việc theo ca" />
-                        <TaskCard icon={<CalendarRange size={32} />} label="Lịch làm việc theo nhân viên" />
-                        <TaskCard icon={<FolderCheck size={32} />} label="Phê duyệt lịch làm việc" />
+                        <TaskCard
+                            icon={<CalendarDays size={32} />}
+                            label="Lịch làm việc theo ca"
+                            onPress={() => {
+                                router.push("/function/weekly-schedule");
+                            }}
+                        />
+                        <TaskCard
+                            icon={<CalendarRange size={32} />}
+                            label="Lịch làm việc theo nhân viên"
+                            onPress={() => {
+                                router.push("/function/shift-schedule?tab=assignments");
+                            }}
+                        />
+                        <TaskCard
+                            icon={<FolderCheck size={32} />}
+                            label="Phê duyệt lịch làm việc"
+                            onPress={() => {
+                                router.push("/function/shift-schedule?tab=mySchedule");
+                            }}
+                        />
                     </View>
                 )}
 

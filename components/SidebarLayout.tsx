@@ -95,59 +95,62 @@ const SidebarLayout: React.FC<Props> = ({ title, activeKey, children }) => {
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>{title}</Text>
       </View>
-      <View style={styles.content}>{children}</View>
 
-      {isSidebarVisible && (
-        <>
-          <TouchableWithoutFeedback onPress={() => closeSidebar()}>
-            <Animated.View style={[styles.overlay, { opacity: overlayAnim }]} />
-          </TouchableWithoutFeedback>
-          <Animated.View
-            style={[
-              styles.sidebar,
-              {
-                transform: [{ translateX: slideAnim }],
-                width: sidebarWidth,
-              },
-            ]}
-          >
-            <Text style={styles.sidebarTitle}>Menu</Text>
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = selectedKey === item.key;
-              const content = (
-                <>
-                  <Icon color={isActive ? '#fff' : '#0d9488'} size={20} />
-                  <Text style={[styles.menuLabel, isActive && styles.menuLabelActive]}>{item.label}</Text>
-                </>
-              );
-              return (
-                <TouchableOpacity
-                  key={item.key}
-                  activeOpacity={0.9}
-                  onPress={() => handleMenuSelect(item.route, item.key)}
-                  style={{ marginBottom: 12 }}
-                >
-                  {isActive ? (
-                    <LinearGradient
-                      colors={['#0fd8c9', '#0aa190']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.menuItemGradient}
-                    >
-                      <View style={styles.menuInner}>{content}</View>
-                    </LinearGradient>
-                  ) : (
-                    <View style={styles.menuItem}>
-                      <View style={styles.menuInner}>{content}</View>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </Animated.View>
-        </>
-      )}
+      <View style={styles.contentWrapper}>
+        <View style={styles.content}>{children}</View>
+
+        {isSidebarVisible && (
+          <>
+            <TouchableWithoutFeedback onPress={() => closeSidebar()}>
+              <Animated.View style={[styles.overlay, { opacity: overlayAnim }]} />
+            </TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.sidebar,
+                {
+                  transform: [{ translateX: slideAnim }],
+                  width: sidebarWidth,
+                },
+              ]}
+            >
+              <Text style={styles.sidebarTitle}>Menu</Text>
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedKey === item.key;
+                const content = (
+                  <>
+                    <Icon color={isActive ? '#fff' : '#0d9488'} size={20} />
+                    <Text style={[styles.menuLabel, isActive && styles.menuLabelActive]}>{item.label}</Text>
+                  </>
+                );
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    activeOpacity={0.9}
+                    onPress={() => handleMenuSelect(item.route, item.key)}
+                    style={{ marginBottom: 12 }}
+                  >
+                    {isActive ? (
+                      <LinearGradient
+                        colors={['#0fd8c9', '#0aa190']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.menuItemGradient}
+                      >
+                        <View style={styles.menuInner}>{content}</View>
+                      </LinearGradient>
+                    ) : (
+                      <View style={styles.menuItem}>
+                        <View style={styles.menuInner}>{content}</View>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </Animated.View>
+          </>
+        )}
+      </View>
     </View>
   );
 };
@@ -156,26 +159,32 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     backgroundColor: '#F4F9F7',
+    paddingTop: 40, // Đẩy toàn bộ layout xuống 
+  },
+  contentWrapper: {
+    flex: 1,
+    position: 'relative',
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
     backgroundColor: '#fff',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e2e8f0',
   },
   topBarTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#0f172a',
     marginLeft: 12,
   },
   menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#bde6df',
     alignItems: 'center',
@@ -197,8 +206,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
+    left: 0,
     backgroundColor: '#fff',
-    paddingTop: 48,
+    paddingTop: 24,
     paddingHorizontal: 20,
     elevation: 12,
     shadowColor: '#000',

@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     Modal,
     RefreshControl,
     ScrollView,
@@ -11,7 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
     AlertTriangle,
     CalendarDays,
@@ -35,8 +36,13 @@ type TabType = "shifts" | "assignments" | "mySchedule";
 
 const ScheduleScreen = () => {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const authContext = useContext(AuthContext);
     const user = authContext?.user;
+
+    // Get screen dimensions for responsive design
+    const { width: screenWidth } = Dimensions.get('window');
+    const isMobile = screenWidth < 768;
 
     // ===== TẤT CẢ HOOKS PHẢI Ở ĐÂY, TRƯỚC BẤT KỲ RETURN NÀO =====
     const [activeTab, setActiveTab] = useState<TabType>("shifts");
@@ -47,6 +53,11 @@ const ScheduleScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Calendar states
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+    const [weekDates, setWeekDates] = useState<string[]>([]);
+    const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
 
     // Modal states
     const [showShiftModal, setShowShiftModal] = useState(false);
@@ -75,9 +86,11 @@ const ScheduleScreen = () => {
         try {
             if (activeTab === "shifts") {
                 const data = await shiftService.getShifts();
+                console.log('Fetched shifts:', data.length);
                 setShifts(data);
             } else if (activeTab === "assignments") {
                 const data = await shiftService.getAssignments();
+                console.log('Fetched assignments:', data.length, data);
                 setAssignments(data);
             } else if (activeTab === "mySchedule") {
                 // Lấy userId từ user hiện tại
@@ -119,12 +132,116 @@ const ScheduleScreen = () => {
         }
     };
 
+    // Xử lý query parameter để set active tab
+    useEffect(() => {
+        if (params.tab) {
+            const tabParam = params.tab as string;
+            if (tabParam === "assignments" || tabParam === "shifts" || tabParam === "mySchedule") {
+                setActiveTab(tabParam as TabType);
+            }
+        }
+    }, [params.tab]);
+
+    // Tạo tuần hiện tại
+    useEffect(() => {
+        const today = new Date();
+        const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1)); // Tính thứ 2
+        setCurrentWeekStart(monday);
+    }, []);
+
+    // Generate week dates khi currentWeekStart thay đổi
+    useEffect(() => {
+        const generateWeekDates = () => {
+            const week = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + i);
+                week.push(date.toISOString().split("T")[0]);
+            }
+            setWeekDates(week);
+        };
+        generateWeekDates();
+    }, [currentWeekStart]);
+
+    const goToPreviousWeek = () => {
+        const prevWeek = new Date(currentWeekStart);
+        prevWeek.setDate(currentWeekStart.getDate() - 7);
+        setCurrentWeekStart(prevWeek);
+    };
+
+    const goToNextWeek = () => {
+        const nextWeek = new Date(currentWeekStart);
+        nextWeek.setDate(currentWeekStart.getDate() + 7);
+        setCurrentWeekStart(nextWeek);
+    };
+
+    const goToCurrentWeek = () => {
+        const today = new Date();
+        const currentDay = today.getDay();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+        setCurrentWeekStart(monday);
+        setSelectedDate(today.toISOString().split("T")[0]);
+    };
+
     useEffect(() => {
         fetchData();
         if (activeTab === "assignments" || showAssignModal) {
             fetchEmployees();
         }
     }, [activeTab]);
+
+    // Filter assignments theo ngày được chọn
+    const filteredAssignments = useMemo(() => {
+        if (activeTab !== "assignments") return assignments;
+
+        return assignments.filter(assignment => {
+            const assignmentDate = assignment.shiftDate.split("T")[0];
+            return assignmentDate === selectedDate;
+        });
+    }, [assignments, selectedDate, activeTab]);
+
+    // Filter mySchedule theo tuần được chọn
+    const filteredMySchedule = useMemo(() => {
+        if (activeTab !== "mySchedule") return mySchedule;
+
+        return mySchedule
+            .filter(assignment => {
+                const assignmentDate = assignment.shiftDate.split("T")[0];
+                return weekDates.includes(assignmentDate);
+            })
+            .sort((a, b) => {
+                // Sắp xếp theo ngày, sau đó theo giờ bắt đầu
+                const dateA = new Date(a.shiftDate).getTime();
+                const dateB = new Date(b.shiftDate).getTime();
+                if (dateA !== dateB) return dateA - dateB;
+
+                const timeA = a.shiftStartTime || "00:00";
+                const timeB = b.shiftStartTime || "00:00";
+                return timeA.localeCompare(timeB);
+            });
+    }, [mySchedule, weekDates, activeTab]);
+
+    // ===== KIỂM TRA QUYỀN TRUY CẬP (SAU TẤT CẢ HOOKS) =====
+    const userRole = user?.role || user?.userRole || user?.Role || user?.roleName;
+    const userRoleLower = userRole?.toLowerCase();
+    const isAdminOrManager =
+        userRoleLower === 'admin' ||
+        userRoleLower === 'manager' ||
+        userRole === 'Admin' ||
+        userRole === 'Manager';
+
+    const isLoading = authContext?.loading === true;
+    const canManageShifts = isAdminOrManager;
+
+    // Nếu không có quyền quản lý và đang ở tab quản lý, chuyển về "Lịch của tôi"
+    useEffect(() => {
+        if (!canManageShifts && (activeTab === "shifts" || activeTab === "assignments")) {
+            setActiveTab("mySchedule");
+        }
+    }, [canManageShifts, activeTab]);
 
     const handleCreateShift = async () => {
         if (!shiftForm.name || !shiftForm.startTime || !shiftForm.endTime) {
@@ -144,12 +261,11 @@ const ScheduleScreen = () => {
             setEditingShift(null);
             setShiftForm({ name: "", startTime: "", endTime: "" });
 
-            // Reload data sau khi đóng modal
-            setTimeout(async () => {
-                const data = await shiftService.getShifts();
-                setShifts(data);
-                showAlert("Thành công", editingShift ? "Cập nhật ca làm việc thành công!" : "Tạo ca làm việc thành công!");
-            }, 100);
+            // Reload shifts ngay lập tức
+            const data = await shiftService.getShifts();
+            setShifts(data);
+
+            showAlert("Thành công", editingShift ? "Cập nhật ca làm việc thành công!" : "Tạo ca làm việc thành công!");
         } catch (err: any) {
             let message = err?.response?.data?.message || err?.message || "Có lỗi xảy ra";
             if (err?.response?.status === 404) {
@@ -219,13 +335,18 @@ const ScheduleScreen = () => {
 
     const handleAssignShift = async () => {
         if (!assignForm.userId || !assignForm.shiftId || !assignForm.shiftDate) {
-            Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin");
+            showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin");
             return;
         }
 
         try {
-            await shiftService.assignShift(assignForm);
-            Alert.alert("Thành công", "Phân công ca làm việc thành công");
+            console.log('Assigning shift:', assignForm);
+
+            // Sử dụng assignShift với returnList=true
+            const result = await shiftService.assignShift(assignForm);
+            console.log('Assign result:', result);
+
+            // Đóng modal trước
             setShowAssignModal(false);
             setAssignForm({
                 userId: 0,
@@ -233,42 +354,65 @@ const ScheduleScreen = () => {
                 shiftDate: new Date().toISOString().split("T")[0],
                 status: "assigned",
             });
-            fetchData();
+
+            // Cập nhật assignments từ response
+            if (activeTab === "assignments") {
+                if (result.allAssignments) {
+                    setAssignments(result.allAssignments);
+                } else {
+                    // Fallback: reload manually
+                    const data = await shiftService.getAssignments();
+                    setAssignments(data);
+                }
+            }
+
+            showAlert("Thành công", "Phân công ca làm việc thành công");
         } catch (err: any) {
             let message = err?.response?.data?.message || err?.message || "Có lỗi xảy ra";
-            if (err?.response?.status === 403) {
+            if (err?.response?.status === 500) {
+                message = "Lỗi server: " + (err?.response?.data?.message || "Vui lòng kiểm tra dữ liệu đầu vào và thử lại");
+            } else if (err?.response?.status === 403) {
                 message = "Bạn không có quyền thực hiện thao tác này. Vui lòng kiểm tra lại quyền truy cập.";
+            } else if (err?.response?.status === 400) {
+                message = "Dữ liệu không hợp lệ: " + (err?.response?.data?.message || "Vui lòng kiểm tra lại thông tin");
             }
-            Alert.alert("Lỗi", message);
+            showAlert("Lỗi", message);
         }
     };
 
-    const handleDeleteAssignment = (assignment: ShiftAssignment) => {
-        Alert.alert(
-            "Xác nhận",
+    const handleDeleteAssignment = async (assignment: ShiftAssignment) => {
+        const confirmed = await showConfirmDestructive(
+            "Xác nhận xóa",
             "Bạn có chắc muốn hủy phân công này?",
-            [
-                { text: "Hủy", style: "cancel" },
-                {
-                    text: "Xóa",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await shiftService.deleteAssignment(assignment.id);
-                            Alert.alert("Thành công", "Hủy phân công thành công");
-                            fetchData();
-                        } catch (err: any) {
-                            let message = err?.response?.data?.message || err?.message || "Có lỗi xảy ra";
-                            if (err?.response?.status === 403) {
-                                message = "Bạn không có quyền thực hiện thao tác này. Vui lòng kiểm tra lại quyền truy cập.";
-                            }
-                            console.error("Error deleting shift:", err);
-                            Alert.alert("Lỗi", message);
-                        }
-                    },
-                },
-            ]
+            "Xóa"
         );
+
+        if (!confirmed) return;
+
+        try {
+            console.log('Deleting assignment:', assignment.id);
+            await shiftService.deleteAssignment(assignment.id);
+
+            // Reload assignments ngay lập tức
+            if (activeTab === "assignments") {
+                const data = await shiftService.getAssignments();
+                console.log('Assignments after delete:', data);
+                setAssignments(data);
+            }
+
+            showAlert("Thành công", "Hủy phân công thành công");
+        } catch (err: any) {
+            console.error("Error deleting assignment:", err);
+            console.error('Error response:', err?.response);
+
+            let message = err?.response?.data?.message || err?.message || "Có lỗi xảy ra";
+            if (err?.response?.status === 403) {
+                message = "Bạn không có quyền thực hiện thao tác này. Vui lòng kiểm tra lại quyền truy cập.";
+            } else if (err?.response?.status === 404) {
+                message = "Backend không hỗ trợ xóa phân công. Vui lòng liên hệ admin để kiểm tra API endpoint DELETE /api/ShiftAssignments/{id}";
+            }
+            showAlert("Lỗi", message);
+        }
     };
 
     const openEditModal = (shift: Shift) => {
@@ -315,24 +459,93 @@ const ScheduleScreen = () => {
         });
     };
 
+    const renderWeekCalendar = () => {
+        const dayNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+        const today = new Date().toISOString().split("T")[0];
+
+        // Format tháng năm để hiển thị
+        const startDate = new Date(weekDates[0]);
+        const endDate = new Date(weekDates[6]);
+        const monthYear = startDate.getMonth() === endDate.getMonth()
+            ? `Tháng ${startDate.getMonth() + 1}/${startDate.getFullYear()}`
+            : `${startDate.getMonth() + 1}/${startDate.getFullYear()} - ${endDate.getMonth() + 1}/${endDate.getFullYear()}`;
+
+        return (
+            <View style={styles.weekCalendar}>
+                <View style={styles.weekHeader}>
+                    <TouchableOpacity style={styles.weekNavButton} onPress={goToPreviousWeek}>
+                        <Text style={styles.weekNavText}>‹</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.weekTitleContainer} onPress={goToCurrentWeek}>
+                        <Text style={styles.weekTitle}>{monthYear}</Text>
+                        <Text style={styles.weekSubtitle}>Nhấn để về tuần hiện tại</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.weekNavButton} onPress={goToNextWeek}>
+                        <Text style={styles.weekNavText}>›</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.weekDays}>
+                    {weekDates.map((date, index) => {
+                        const isSelected = date === selectedDate;
+                        const dayNum = new Date(date).getDate();
+                        const isToday = date === today;
+
+                        return (
+                            <TouchableOpacity
+                                key={date}
+                                style={[
+                                    styles.dayButton,
+                                    isSelected && styles.dayButtonSelected,
+                                    isToday && styles.dayButtonToday
+                                ]}
+                                onPress={() => setSelectedDate(date)}
+                            >
+                                <Text style={[
+                                    styles.dayName,
+                                    isSelected && styles.dayNameSelected
+                                ]}>
+                                    {dayNames[index]}
+                                </Text>
+                                <Text style={[
+                                    styles.dayNumber,
+                                    isSelected && styles.dayNumberSelected,
+                                    isToday && styles.dayNumberToday
+                                ]}>
+                                    {dayNum}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            </View>
+        );
+    };
+
     const renderTabs = () => (
         <View style={styles.tabs}>
-            <TouchableOpacity
-                style={[styles.tab, activeTab === "shifts" && styles.tabActive]}
-                onPress={() => setActiveTab("shifts")}
-            >
-                <Text style={[styles.tabText, activeTab === "shifts" && styles.tabTextActive]}>
-                    Ca làm việc
-                </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                style={[styles.tab, activeTab === "assignments" && styles.tabActive]}
-                onPress={() => setActiveTab("assignments")}
-            >
-                <Text style={[styles.tabText, activeTab === "assignments" && styles.tabTextActive]}>
-                    Phân công
-                </Text>
-            </TouchableOpacity>
+            {canManageShifts && (
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === "shifts" && styles.tabActive]}
+                    onPress={() => setActiveTab("shifts")}
+                >
+                    <Text style={[styles.tabText, activeTab === "shifts" && styles.tabTextActive]}>
+                        Ca làm việc
+                    </Text>
+                </TouchableOpacity>
+            )}
+            {canManageShifts && (
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === "assignments" && styles.tabActive]}
+                    onPress={() => setActiveTab("assignments")}
+                >
+                    <Text style={[styles.tabText, activeTab === "assignments" && styles.tabTextActive]}>
+                        Phân công
+                    </Text>
+                </TouchableOpacity>
+            )}
             <TouchableOpacity
                 style={[styles.tab, activeTab === "mySchedule" && styles.tabActive]}
                 onPress={() => setActiveTab("mySchedule")}
@@ -424,12 +637,17 @@ const ScheduleScreen = () => {
             );
         }
 
-        if (assignments.length === 0) {
+        if (filteredAssignments.length === 0) {
             return (
                 <View style={styles.emptyState}>
                     <Users size={48} color="#94a3b8" />
                     <Text style={styles.emptyTitle}>Chưa có phân công</Text>
-                    <Text style={styles.emptyDesc}>Phân công ca cho nhân viên để bắt đầu</Text>
+                    <Text style={styles.emptyDesc}>
+                        {assignments.length === 0
+                            ? "Phân công ca cho nhân viên để bắt đầu"
+                            : `Không có phân công nào cho ngày ${formatDate(selectedDate)}`
+                        }
+                    </Text>
                 </View>
             );
         }
@@ -441,7 +659,7 @@ const ScheduleScreen = () => {
                     <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} />
                 }
             >
-                {assignments.map((assignment) => (
+                {filteredAssignments.map((assignment) => (
                     <View key={assignment.id} style={styles.assignmentCard}>
                         <View style={styles.assignmentHeader}>
                             <View style={{ flex: 1 }}>
@@ -487,12 +705,17 @@ const ScheduleScreen = () => {
             );
         }
 
-        if (mySchedule.length === 0) {
+        if (filteredMySchedule.length === 0) {
             return (
                 <View style={styles.emptyState}>
                     <CalendarDays size={48} color="#94a3b8" />
                     <Text style={styles.emptyTitle}>Chưa có lịch làm việc</Text>
-                    <Text style={styles.emptyDesc}>Bạn chưa được phân công ca nào</Text>
+                    <Text style={styles.emptyDesc}>
+                        {mySchedule.length === 0
+                            ? "Bạn chưa được phân công ca nào"
+                            : "Không có ca nào trong tuần này"
+                        }
+                    </Text>
                 </View>
             );
         }
@@ -504,42 +727,50 @@ const ScheduleScreen = () => {
                     <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} />
                 }
             >
-                {mySchedule.map((assignment) => (
-                    <View key={assignment.id} style={styles.assignmentCard}>
-                        <View style={styles.assignmentHeader}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.assignmentShift}>{assignment.shiftName}</Text>
-                                <Text style={styles.assignmentDate}>{formatDate(assignment.shiftDate)}</Text>
-                                <View style={styles.assignmentTimeRow}>
-                                    <Clock size={14} color="#0d9488" />
-                                    <Text style={styles.assignmentTime}>
-                                        {formatTime(assignment.shiftStartTime || "")} -{" "}
-                                        {formatTime(assignment.shiftEndTime || "")}
+                {filteredMySchedule.map((assignment) => {
+                    const assignmentDate = assignment.shiftDate.split("T")[0];
+                    const isSelectedDate = assignmentDate === selectedDate;
+                    const isToday = assignmentDate === new Date().toISOString().split("T")[0];
+
+                    return (
+                        <View
+                            key={assignment.id}
+                            style={[
+                                styles.assignmentCard,
+                                isSelectedDate && styles.assignmentCardSelected,
+                                isToday && styles.assignmentCardToday
+                            ]}
+                        >
+                            <View style={styles.assignmentHeader}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.assignmentShift}>{assignment.shiftName}</Text>
+                                    <Text style={[
+                                        styles.assignmentDate,
+                                        isSelectedDate && styles.assignmentDateSelected,
+                                        isToday && styles.assignmentDateToday
+                                    ]}>
+                                        {formatDate(assignment.shiftDate)}
                                     </Text>
+                                    <View style={styles.assignmentTimeRow}>
+                                        <Clock size={14} color="#0d9488" />
+                                        <Text style={styles.assignmentTime}>
+                                            {formatTime(assignment.shiftStartTime || "")} -{" "}
+                                            {formatTime(assignment.shiftEndTime || "")}
+                                        </Text>
+                                    </View>
                                 </View>
                             </View>
+                            {assignment.status && (
+                                <View style={styles.statusBadge}>
+                                    <Text style={styles.statusText}>{assignment.status}</Text>
+                                </View>
+                            )}
                         </View>
-                        {assignment.status && (
-                            <View style={styles.statusBadge}>
-                                <Text style={styles.statusText}>{assignment.status}</Text>
-                            </View>
-                        )}
-                    </View>
-                ))}
+                    );
+                })}
             </ScrollView>
         );
     };
-
-    // ===== KIỂM TRA QUYỀN TRUY CẬP (SAU TẤT CẢ HOOKS) =====
-    const userRole = user?.role || user?.userRole || user?.Role || user?.roleName;
-    const userRoleLower = userRole?.toLowerCase();
-    const isAdminOrManager =
-        userRoleLower === 'admin' ||
-        userRoleLower === 'manager' ||
-        userRole === 'Admin' ||
-        userRole === 'Manager';
-
-    const isLoading = authContext?.loading === true;
 
     // Nếu đang loading, hiển thị loading
     if (isLoading || (!user && authContext?.loading === false)) {
@@ -553,56 +784,39 @@ const ScheduleScreen = () => {
         );
     }
 
-    // Nếu không có quyền, hiển thị thông báo
-    if (!isAdminOrManager) {
-        return (
-            <SidebarLayout title="Xếp lịch làm việc" activeKey="task">
-                <View style={styles.unauthorizedContainer}>
-                    <ShieldAlert size={64} color="#dc2626" />
-                    <Text style={styles.unauthorizedTitle}>Không có quyền truy cập</Text>
-                    <Text style={styles.unauthorizedMessage}>
-                        Chỉ Admin và Manager mới có quyền truy cập trang quản lý lịch làm việc.
-                    </Text>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => router.back()}
-                    >
-                        <Text style={styles.backButtonText}>Quay lại</Text>
-                    </TouchableOpacity>
-                </View>
-            </SidebarLayout>
-        );
-    }
-
     return (
-        <SidebarLayout title="Xếp lịch làm việc" activeKey="task">
+        <SidebarLayout title={canManageShifts ? "Xếp lịch làm việc" : "Lịch làm việc của tôi"} activeKey="task">
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <View>
-                        <Text style={styles.headerTitle}>Quản lý lịch làm việc</Text>
-                        <Text style={styles.headerSubtitle}>
-                            {activeTab === "shifts" && `${shifts.length} ca làm việc`}
-                            {activeTab === "assignments" && `${assignments.length} phân công`}
-                            {activeTab === "mySchedule" && `${mySchedule.length} ca của tôi`}
+                <View style={[styles.header, isMobile && styles.headerMobile]}>
+                    <View style={styles.headerLeft}>
+                        <Text style={[styles.headerTitle, isMobile && styles.headerTitleMobile]}>
+                            {canManageShifts ? "Quản lý lịch làm việc" : "Lịch làm việc của tôi"}
+                        </Text>
+                        <Text style={[styles.headerSubtitle, isMobile && styles.headerSubtitleMobile]}>
+                            {canManageShifts && activeTab === "shifts" && `${shifts.length} ca làm việc`}
+                            {canManageShifts && activeTab === "assignments" && `${filteredAssignments.length} phân công`}
+                            {activeTab === "mySchedule" && `${filteredMySchedule.length} ca trong tuần`}
                         </Text>
                     </View>
-                    <View style={styles.headerActions}>
-                        {activeTab === "shifts" && (
-                            <TouchableOpacity style={styles.addButton} onPress={openCreateModal}>
-                                <Plus size={18} color="#fff" />
-                                <Text style={styles.addButtonText}>Thêm ca</Text>
-                            </TouchableOpacity>
-                        )}
-                        {activeTab === "assignments" && (
-                            <TouchableOpacity style={styles.addButton} onPress={openAssignModal}>
-                                <Plus size={18} color="#fff" />
-                                <Text style={styles.addButtonText}>Phân công</Text>
-                            </TouchableOpacity>
-                        )}
-                        <TouchableOpacity style={styles.refreshButton} onPress={() => fetchData(true)}>
-                            <RefreshCcw size={18} color="#0d9488" />
+                </View>
+
+                {/* Action buttons row */}
+                <View style={styles.actionRow}>
+                    {canManageShifts && activeTab === "shifts" && (
+                        <TouchableOpacity style={styles.addButton} onPress={openCreateModal}>
+                            <Plus size={16} color="#fff" />
+                            <Text style={styles.addButtonText}>Thêm ca</Text>
                         </TouchableOpacity>
-                    </View>
+                    )}
+                    {canManageShifts && activeTab === "assignments" && (
+                        <TouchableOpacity style={styles.addButton} onPress={openAssignModal}>
+                            <Plus size={16} color="#fff" />
+                            <Text style={styles.addButtonText}>Phân công</Text>
+                        </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={styles.refreshButton} onPress={() => fetchData(true)}>
+                        <RefreshCcw size={16} color="#0d9488" />
+                    </TouchableOpacity>
                 </View>
 
                 {error && (
@@ -613,6 +827,8 @@ const ScheduleScreen = () => {
                 )}
 
                 {renderTabs()}
+
+                {(activeTab === "assignments" || activeTab === "mySchedule") && renderWeekCalendar()}
 
                 <View style={styles.content}>
                     {activeTab === "shifts" && renderShifts()}
@@ -796,23 +1012,36 @@ const styles = StyleSheet.create({
         backgroundColor: "#F4F9F7",
     },
     header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
         backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#e2e8f0",
+        minHeight: 80,
+    },
+    headerLeft: {
+        flex: 1,
+    },
+    actionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#e2e8f0",
+        gap: 8,
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: "700",
         color: "#0f172a",
+        marginBottom: 4,
     },
     headerSubtitle: {
         fontSize: 14,
         color: "#64748b",
-        marginTop: 4,
+        fontWeight: "500",
     },
     headerActions: {
         flexDirection: "row",
@@ -822,21 +1051,21 @@ const styles = StyleSheet.create({
     addButton: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 12,
+        gap: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
         backgroundColor: "#0d9488",
     },
     addButtonText: {
         color: "#fff",
         fontWeight: "600",
-        fontSize: 14,
+        fontSize: 13,
     },
     refreshButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         backgroundColor: "#ecfeff",
         borderWidth: 1,
         borderColor: "#99f6e4",
@@ -1034,6 +1263,87 @@ const styles = StyleSheet.create({
         color: "#1e40af",
         fontWeight: "500",
     },
+    // Calendar styles
+    weekCalendar: {
+        backgroundColor: "#fff",
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: "#e2e8f0",
+    },
+    weekHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 12,
+    },
+    weekNavButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#f1f5f9",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    weekNavText: {
+        fontSize: 24,
+        fontWeight: "600",
+        color: "#0d9488",
+    },
+    weekTitleContainer: {
+        flex: 1,
+        alignItems: "center",
+    },
+    weekTitle: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#0f172a",
+    },
+    weekSubtitle: {
+        fontSize: 11,
+        color: "#64748b",
+        marginTop: 1,
+    },
+    weekDays: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    dayButton: {
+        alignItems: "center",
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        backgroundColor: "#f8fafc",
+        flex: 1,
+        marginHorizontal: 2,
+    },
+    dayButtonSelected: {
+        backgroundColor: "#0d9488",
+    },
+    dayButtonToday: {
+        borderWidth: 2,
+        borderColor: "#0d9488",
+    },
+    dayName: {
+        fontSize: 12,
+        color: "#64748b",
+        fontWeight: "500",
+        marginBottom: 2,
+    },
+    dayNameSelected: {
+        color: "#fff",
+    },
+    dayNumber: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#0f172a",
+    },
+    dayNumberSelected: {
+        color: "#fff",
+    },
+    dayNumberToday: {
+        color: "#fff",
+    },
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
@@ -1165,6 +1475,41 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "600",
         fontSize: 16,
+    },
+    // Mobile-specific styles
+    headerMobile: {
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+        minHeight: 90,
+    },
+    headerTitleMobile: {
+        fontSize: 22,
+        fontWeight: "800",
+        marginBottom: 6,
+    },
+    headerSubtitleMobile: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#0d9488",
+    },
+    // Highlight styles for selected and today assignments
+    assignmentCardSelected: {
+        borderColor: "#0d9488",
+        borderWidth: 2,
+        backgroundColor: "#ecfeff",
+    },
+    assignmentCardToday: {
+        borderColor: "#f59e0b",
+        borderWidth: 2,
+        backgroundColor: "#fef3c7",
+    },
+    assignmentDateSelected: {
+        color: "#0d9488",
+        fontWeight: "700",
+    },
+    assignmentDateToday: {
+        color: "#f59e0b",
+        fontWeight: "700",
     },
 });
 
