@@ -156,9 +156,9 @@ export default function AdminTaskScreen() {
                         />
                         <TaskCard
                             icon={<FolderCheck size={32} />}
-                            label="Phê duyệt lịch làm việc"
+                            label="Xem yêu cầu đăng ký lịch làm"
                             onPress={() => {
-                                router.push("/function/shift-schedule?tab=mySchedule");
+                                router.push("/function/weekly-schedule-requests");
                             }}
                         />
                     </View>
@@ -173,7 +173,13 @@ export default function AdminTaskScreen() {
                 {expanded.attendance && (
                     <View style={styles.cardRow}>
                         <TaskCard icon={<SquareLibrary size={32} />} label="Báo cáo chấm công" />
-                        <TaskCard icon={<ListCollapse size={32} />} label="Yêu cầu bổ sung chấm công" />
+                        <TaskCard
+                            icon={<ListCollapse size={32} />}
+                            label="Yêu cầu bổ sung chấm công"
+                            onPress={() => {
+                                router.push("/function/shift-approval");
+                            }}
+                        />
                     </View>
                 )}
 

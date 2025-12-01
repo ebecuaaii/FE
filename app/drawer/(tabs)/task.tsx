@@ -15,10 +15,11 @@ import {
   FileText,
   Wallet,
 } from "lucide-react-native";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import SidebarLayout from "../../../components/SidebarLayout";
 
 export default function TaskScreen() {
+  const router = useRouter();
   <Tabs.Screen
     name="task"
     options={{ headerShown: true, title: "Tác vụ" }}
@@ -67,8 +68,16 @@ export default function TaskScreen() {
 
         {expanded.work && (
           <View style={styles.cardRow}>
-            <TaskCard icon={<Calendar size={32} />} label="Lịch làm việc chung" />
-            <TaskCard icon={<CalendarPlus size={32} />} label="Đăng ký lịch làm việc" />
+            <TaskCard
+              icon={<Calendar size={32} />}
+              label="Lịch làm việc chung"
+              onPress={() => router.push("/function/shift-schedule?tab=assignments&readOnly=true")}
+            />
+            <TaskCard
+              icon={<CalendarPlus size={32} />}
+              label="Đăng ký lịch làm việc"
+              onPress={() => router.push("/function/weekly-schedule-requests")}
+            />
           </View>
         )}
 
@@ -117,10 +126,10 @@ export default function TaskScreen() {
 }
 
 // ========================= COMPONENT CARD =========================
-function TaskCard({ icon, label, iconColor = "#0d9488" }: { icon: any; label: string; iconColor?: string }) {
+function TaskCard({ icon, label, iconColor = "#0d9488", onPress }: { icon: any; label: string; iconColor?: string; onPress?: () => void }) {
   const coloredIcon = React.cloneElement(icon, { color: iconColor });
   return (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress}>
       {coloredIcon}
       <Text style={styles.cardText}>{label}</Text>
     </TouchableOpacity>

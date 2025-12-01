@@ -29,6 +29,7 @@ import {
 import SidebarLayout from "../../components/SidebarLayout";
 import { shiftService, Shift, ShiftAssignment, AssignShiftRequest } from "../../services/shiftService";
 import { employeeService, Employee } from "../../services/employeeService";
+import { weeklyScheduleRequestService, WeeklyScheduleRequest } from "../../services/weeklyScheduleRequestService";
 import { AuthContext } from "../../context/AuthContext";
 import { showAlert, showConfirmDestructive } from "../../utils/alertUtils";
 
@@ -45,6 +46,7 @@ const WeeklyScheduleScreen = () => {
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [weeklySchedule, setWeeklySchedule] = useState<{ [key: string]: ShiftAssignment[] }>({});
+    const [weeklyRequests, setWeeklyRequests] = useState<{ [key: string]: WeeklyScheduleRequest[] }>({});
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -131,9 +133,10 @@ const WeeklyScheduleScreen = () => {
             await fetchWeeklyAssignments();
         } catch (err: any) {
             let message = err?.response?.data?.message || err?.message || "Không thể tải dữ liệu";
-            console.error("Error fetching data:", err);
+            if (err?.response?.status === 401) {
+                message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+            }
             setError(message);
-            showAlert("Lỗi", message);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -142,7 +145,10 @@ const WeeklyScheduleScreen = () => {
 
     const fetchWeeklyAssignments = async () => {
         try {
-            const assignments = await shiftService.getAssignments();
+            const [assignments, requests] = await Promise.all([
+                shiftService.getAssignments(),
+                weeklyScheduleRequestService.getRequests()
+            ]);
 
             // Group assignments by date
             const weeklyData: { [key: string]: ShiftAssignment[] } = {};
@@ -153,7 +159,23 @@ const WeeklyScheduleScreen = () => {
                 });
             });
 
+            // Group requests by date
+            const requestsData: { [key: string]: WeeklyScheduleRequest[] } = {};
+            weekDates.forEach(date => {
+                const filtered = requests.filter(request => {
+                    // Normalize date format - handle both ISO and other formats
+                    let requestDate = request.requestedDate;
+                    if (requestDate.includes('T')) {
+                        requestDate = requestDate.split("T")[0];
+                    } else if (requestDate.includes(' ')) {
+                        requestDate = requestDate.split(" ")[0];
+                    }
+                    return requestDate === date;
+                });
+                requestsData[date] = filtered;
+            });
             setWeeklySchedule(weeklyData);
+            setWeeklyRequests(requestsData);
         } catch (err) {
             console.error("Error fetching weekly assignments:", err);
         }
@@ -329,7 +351,6 @@ const WeeklyScheduleScreen = () => {
         try {
             console.log('Assigning shift:', assignForm);
 
-            // Sử dụng assignShift với returnList=true (giống shift-schedule)
             const result = await shiftService.assignShift(assignForm);
             console.log('Assign result:', result);
 
@@ -425,14 +446,25 @@ const WeeklyScheduleScreen = () => {
                                 {weekDates.map((date) => {
                                     const dayAssignments = weeklySchedule[date] || [];
                                     const shiftAssignments = dayAssignments.filter(a => a.shiftId === shift.id);
+                                    const dayRequests = weeklyRequests[date] || [];
+                                    const shiftRequests = dayRequests.filter(r => r.shiftId === shift.id);
 
                                     return (
                                         <View key={`${shift.id}-${date}`} style={styles.gridCell}>
                                             <ScrollView style={styles.assignmentList} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                                                {/* Hiển thị phân công từ admin */}
                                                 {shiftAssignments.map((assignment) => (
-                                                    <View key={assignment.id} style={styles.assignmentChip}>
+                                                    <View key={`assign-${assignment.id}`} style={styles.assignmentChip}>
                                                         <Text style={styles.assignmentText} numberOfLines={1}>
                                                             {assignment.fullName || assignment.userName || `User ${assignment.userId}`}
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                                {/* Hiển thị yêu cầu đăng ký từ user */}
+                                                {shiftRequests.map((request) => (
+                                                    <View key={`req-${request.id}`} style={styles.assignmentChip}>
+                                                        <Text style={styles.assignmentText} numberOfLines={1}>
+                                                            {request.fullName || request.userName || `User ${request.userId}`}
                                                         </Text>
                                                     </View>
                                                 ))}

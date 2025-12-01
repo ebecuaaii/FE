@@ -42,8 +42,7 @@ const HomeScreen = () => {
                 //alert('Chức năng chấm công đang phát triển');
                 break;
             case '2': // Lịch làm việc
-                router.push('/function/schedule');
-                //alert('Chức năng lịch làm việc đang phát triển');
+                router.push('/function/shift-schedule?tab=assignments&readOnly=true');
                 break;
             case '3': // Đăng ký nghỉ
                 // router.push('/leave-request');
@@ -72,7 +71,7 @@ const HomeScreen = () => {
             id: '2',
             icon: '💼',
             title: 'Lịch làm việc',
-            subtitle: 'Đổi ca/ Nhờ làm thay',
+            subtitle: 'Xem lịch làm việc chung',
             color: '#0ea5e9',
         },
         {

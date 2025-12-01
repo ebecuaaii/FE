@@ -112,11 +112,9 @@ const ScheduleScreen = () => {
                 message = "Bạn không có quyền truy cập dữ liệu này. Vui lòng kiểm tra lại quyền truy cập.";
             }
             console.error("Error fetching data:", err);
+            console.error("Error response:", err?.response);
+            console.error("Error status:", err?.response?.status);
             setError(message);
-            // Chỉ hiển thị alert nếu không phải lỗi 403 (để tránh spam)
-            if (err?.response?.status !== 403) {
-                Alert.alert("Lỗi", message);
-            }
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -234,14 +232,18 @@ const ScheduleScreen = () => {
         userRole === 'Manager';
 
     const isLoading = authContext?.loading === true;
-    const canManageShifts = isAdminOrManager;
+
+    // Kiểm tra chế độ read-only từ query params
+    const isReadOnly = params.readOnly === 'true' || String(params.readOnly) === 'true';
+    const canManageShifts = isAdminOrManager && !isReadOnly;
 
     // Nếu không có quyền quản lý và đang ở tab quản lý, chuyển về "Lịch của tôi"
+    // Trừ khi đang ở chế độ read-only (xem lịch chung)
     useEffect(() => {
-        if (!canManageShifts && (activeTab === "shifts" || activeTab === "assignments")) {
+        if (!canManageShifts && !isReadOnly && (activeTab === "shifts" || activeTab === "assignments")) {
             setActiveTab("mySchedule");
         }
-    }, [canManageShifts, activeTab]);
+    }, [canManageShifts, activeTab, isReadOnly]);
 
     const handleCreateShift = async () => {
         if (!shiftForm.name || !shiftForm.startTime || !shiftForm.endTime) {
@@ -285,7 +287,6 @@ const ScheduleScreen = () => {
     const handleDeleteShift = async (shift: Shift) => {
         console.log('handleDeleteShift called with:', shift);
 
-        // Dùng utility function để hoạt động trên cả web và mobile
         const confirmed = await showConfirmDestructive(
             "Xác nhận xóa",
             `Bạn có chắc muốn xóa ca "${shift.name}"?`,
@@ -304,7 +305,6 @@ const ScheduleScreen = () => {
             const data = await shiftService.getShifts();
             setShifts(data);
 
-            // Hiện thông báo thành công
             showAlert("Thành công", "Xóa ca làm việc thành công!");
         } catch (err: any) {
             console.error('Delete shift error:', err);
@@ -342,7 +342,6 @@ const ScheduleScreen = () => {
         try {
             console.log('Assigning shift:', assignForm);
 
-            // Sử dụng assignShift với returnList=true
             const result = await shiftService.assignShift(assignForm);
             console.log('Assign result:', result);
 
@@ -526,7 +525,7 @@ const ScheduleScreen = () => {
 
     const renderTabs = () => (
         <View style={styles.tabs}>
-            {canManageShifts && (
+            {canManageShifts && !isReadOnly && (
                 <TouchableOpacity
                     style={[styles.tab, activeTab === "shifts" && styles.tabActive]}
                     onPress={() => setActiveTab("shifts")}
@@ -536,24 +535,26 @@ const ScheduleScreen = () => {
                     </Text>
                 </TouchableOpacity>
             )}
-            {canManageShifts && (
+            {(canManageShifts || isReadOnly) && (
                 <TouchableOpacity
                     style={[styles.tab, activeTab === "assignments" && styles.tabActive]}
                     onPress={() => setActiveTab("assignments")}
                 >
                     <Text style={[styles.tabText, activeTab === "assignments" && styles.tabTextActive]}>
-                        Phân công
+                        {isReadOnly ? "Lịch làm việc" : "Phân công"}
                     </Text>
                 </TouchableOpacity>
             )}
-            <TouchableOpacity
-                style={[styles.tab, activeTab === "mySchedule" && styles.tabActive]}
-                onPress={() => setActiveTab("mySchedule")}
-            >
-                <Text style={[styles.tabText, activeTab === "mySchedule" && styles.tabTextActive]}>
-                    Lịch của tôi
-                </Text>
-            </TouchableOpacity>
+            {!isReadOnly && (
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === "mySchedule" && styles.tabActive]}
+                    onPress={() => setActiveTab("mySchedule")}
+                >
+                    <Text style={[styles.tabText, activeTab === "mySchedule" && styles.tabTextActive]}>
+                        Lịch của tôi
+                    </Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 
@@ -601,20 +602,22 @@ const ScheduleScreen = () => {
                                     )}
                                 </View>
                             </View>
-                            <View style={styles.shiftActions}>
-                                <TouchableOpacity
-                                    style={styles.actionButton}
-                                    onPress={() => openEditModal(shift)}
-                                >
-                                    <Edit size={18} color="#0d9488" />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, styles.deleteButton]}
-                                    onPress={() => handleDeleteShift(shift)}
-                                >
-                                    <Trash2 size={18} color="#dc2626" />
-                                </TouchableOpacity>
-                            </View>
+                            {!isReadOnly && (
+                                <View style={styles.shiftActions}>
+                                    <TouchableOpacity
+                                        style={styles.actionButton}
+                                        onPress={() => openEditModal(shift)}
+                                    >
+                                        <Edit size={18} color="#0d9488" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.deleteButton]}
+                                        onPress={() => handleDeleteShift(shift)}
+                                    >
+                                        <Trash2 size={18} color="#dc2626" />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
                         </View>
                         {shift.createdByName && (
                             <Text style={styles.shiftMeta}>
@@ -677,12 +680,14 @@ const ScheduleScreen = () => {
                                     </Text>
                                 </View>
                             </View>
-                            <TouchableOpacity
-                                style={[styles.actionButton, styles.deleteButton]}
-                                onPress={() => handleDeleteAssignment(assignment)}
-                            >
-                                <Trash2 size={18} color="#dc2626" />
-                            </TouchableOpacity>
+                            {!isReadOnly && (
+                                <TouchableOpacity
+                                    style={[styles.actionButton, styles.deleteButton]}
+                                    onPress={() => handleDeleteAssignment(assignment)}
+                                >
+                                    <Trash2 size={18} color="#dc2626" />
+                                </TouchableOpacity>
+                            )}
                         </View>
                         {assignment.status && (
                             <View style={styles.statusBadge}>
@@ -785,12 +790,12 @@ const ScheduleScreen = () => {
     }
 
     return (
-        <SidebarLayout title={canManageShifts ? "Xếp lịch làm việc" : "Lịch làm việc của tôi"} activeKey="task">
+        <SidebarLayout title={isReadOnly ? "Lịch làm việc chung" : (canManageShifts ? "Xếp lịch làm việc" : "Lịch làm việc của tôi")} activeKey="task">
             <View style={styles.container}>
                 <View style={[styles.header, isMobile && styles.headerMobile]}>
                     <View style={styles.headerLeft}>
                         <Text style={[styles.headerTitle, isMobile && styles.headerTitleMobile]}>
-                            {canManageShifts ? "Quản lý lịch làm việc" : "Lịch làm việc của tôi"}
+                            {isReadOnly ? "Lịch làm việc chung (Chỉ xem)" : (canManageShifts ? "Quản lý lịch làm việc" : "Lịch làm việc của tôi")}
                         </Text>
                         <Text style={[styles.headerSubtitle, isMobile && styles.headerSubtitleMobile]}>
                             {canManageShifts && activeTab === "shifts" && `${shifts.length} ca làm việc`}
