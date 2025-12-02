@@ -90,7 +90,7 @@ const ScheduleScreen = () => {
                 setShifts(data);
             } else if (activeTab === "assignments") {
                 const data = await shiftService.getAssignments();
-                console.log('Fetched assignments:', data.length, data);
+                //console.log('Fetched assignments:', data.length, data);
                 setAssignments(data);
             } else if (activeTab === "mySchedule") {
                 // Lấy userId từ user hiện tại

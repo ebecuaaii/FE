@@ -45,6 +45,14 @@ export default function AccountScreen() {
   }
 
 
+  const handleMenuPress = (itemId: string) => {
+    if (itemId === '1') {
+      router.push('/function/profile' as any);
+    } else {
+      Alert.alert('Thông báo', 'Chức năng đang phát triển');
+    }
+  };
+
   const menuItems = [
     { id: '1', icon: '👤', title: 'Thông tin cá nhân', subtitle: 'Cập nhật thông tin của bạn' },
     { id: '2', icon: '🔒', title: 'Đổi mật khẩu', subtitle: 'Thay đổi mật khẩu' },
@@ -83,7 +91,7 @@ export default function AccountScreen() {
           <TouchableOpacity
             key={item.id}
             style={styles.menuItem}
-            onPress={() => Alert.alert('Thông báo', `Chức năng ${item.title} đang phát triển`)}
+            onPress={() => handleMenuPress(item.id)}
           >
             <View style={styles.menuIconContainer}>
               <Text style={styles.menuIcon}>{item.icon}</Text>
