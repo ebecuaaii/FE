@@ -54,6 +54,8 @@ export function AuthProvider({ children }: any) {
             await saveUserData(res.user); // Lưu user data vào storage
             setUser(res.user);
         }
+
+        return res.user; // Trả về user data
     };
 
     const logout = async () => {

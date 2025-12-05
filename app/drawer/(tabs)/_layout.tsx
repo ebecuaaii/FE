@@ -8,26 +8,54 @@ import HomeScreen from './home';
 import NotificationScreen from './notification';
 import TaskScreen from './task';
 import AdminTaskScreen from './admin-task';
+import ManagerHomeScreen from './manager-home';
+import ManagerTaskScreen from './manager-task';
 
 const Tab = createBottomTabNavigator();
 
 export default function TabsLayout() {
     const { user } = useContext(AuthContext);
 
-    // Kiểm tra role từ nhiều nguồn (hỗ trợ cả uppercase và lowercase)
-    const userRole = user?.role || user?.userRole || user?.Role || user?.roleName;
-    const userRoleLower = userRole?.toLowerCase();
-    const isAdminOrManager = 
-        userRoleLower === 'admin' || 
-        userRoleLower === 'manager' ||
-        userRole === 'Admin' ||
-        userRole === 'Manager' ||
-        user?.username === 'admin' || 
-        user?.username === 'manager';
+    // Xác định role của user
+    const roleIdRaw = user?.roleId || (user as any)?.RoleId || (user as any)?.role_id;
+    const roleId = typeof roleIdRaw === 'string' ? parseInt(roleIdRaw) : roleIdRaw;
+    const userRole = (user?.roleName || user?.role || '')?.toLowerCase();
+    const userPosition = (
+        user?.positionTitle ||
+        user?.position ||
+        (user as any)?.PositionName ||
+        ''
+    )?.toLowerCase();
+    const userDepartment = (
+        user?.departmentName ||
+        user?.department ||
+        (user as any)?.DepartmentName ||
+        ''
+    )?.toLowerCase();
+
+    // Phân quyền theo roleId hoặc roleName
+    const isAdmin = roleId === 1 || userRole === 'admin';
+    const isManager = roleId === 2 ||
+        (!isAdmin && (
+            userRole === 'manager' ||
+            userPosition?.includes('manager') ||
+            userPosition?.includes('quản lý') ||
+            userPosition?.includes('quản lý chi nhánh') ||
+            userDepartment?.includes('manager') ||
+            userDepartment?.includes('quản lý')
+        ));
 
     // Chọn component dựa trên role
-    const HomeComponent = isAdminOrManager ? AdminHomeScreen : HomeScreen;
-    const TaskComponent = isAdminOrManager ? AdminTaskScreen : TaskScreen;
+    let HomeComponent = HomeScreen;
+    let TaskComponent = TaskScreen;
+
+    if (isAdmin) {
+        HomeComponent = AdminHomeScreen;
+        TaskComponent = AdminTaskScreen;
+    } else if (isManager) {
+        HomeComponent = ManagerHomeScreen;
+        TaskComponent = ManagerTaskScreen;
+    }
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({

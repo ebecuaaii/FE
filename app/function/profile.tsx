@@ -21,9 +21,9 @@ export default function ProfileScreen() {
         {
             title: 'Thông tin công việc',
             items: [
-                { icon: <Briefcase size={20} color="#10b981" />, label: 'Chức vụ', value: user?.position || 'Chưa cập nhật' },
-                { icon: <Building2 size={20} color="#10b981" />, label: 'Phòng ban', value: user?.department || 'Chưa cập nhật' },
-                { icon: <Shield size={20} color="#10b981" />, label: 'Vai trò', value: user?.role || 'employee' },
+                { icon: <Briefcase size={20} color="#10b981" />, label: 'Chức danh', value: user?.positionTitle || 'Chưa cập nhật' },
+                { icon: <Building2 size={20} color="#10b981" />, label: 'Phòng ban', value: user?.departmentName || 'Chưa cập nhật' },
+                { icon: <Shield size={20} color="#10b981" />, label: 'Vai trò', value: user?.roleName || 'employee' },
             ],
         },
     ];

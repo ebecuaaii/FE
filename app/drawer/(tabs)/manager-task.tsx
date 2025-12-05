@@ -1,27 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from "react-native";
-import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, Settings2, Wrench, CircleDollarSign, CircleEqual, UserRound, PackageCheck, TagsIcon, CopyPlus, CircleMinus, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X, Store, SquareUser, UserRoundPen } from "lucide-react-native";
+import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import SidebarLayout from "../../../components/SidebarLayout";
 import { employeeService, Employee } from "../../../services/employeeService";
 
-export default function AdminTaskScreen() {
+export default function ManagerTaskScreen() {
     const router = useRouter();
     const [expanded, setExpanded] = useState({
-        category: true,
         employee: true,
         schedule: true,
         attendance: true,
-        configuration: true,
-        payroll: true
     });
 
-    type ExpandKey = "category" | "employee" | "schedule" | "attendance" | "configuration" | "payroll";
+    type ExpandKey = "employee" | "schedule" | "attendance";
     const [employeeModalVisible, setEmployeeModalVisible] = useState(false);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [employeeLoading, setEmployeeLoading] = useState(false);
     const [employeeError, setEmployeeError] = useState<string | null>(null);
-
 
     const toggle = (key: ExpandKey) => {
         setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -62,20 +58,6 @@ export default function AdminTaskScreen() {
             employee.username ||
             `Nhân viên ${index + 1}`;
 
-        // Tạo mảng thông tin: position, role, department
-        // Kiểm tra nhiều variant của field name (bao gồm cả nested objects)
-        const position =
-            employee.PositionName ||
-            employee.roleName ||
-            (employee as any)?.user?.role ||
-            (employee as any)?.User?.RoleName;
-
-        const department =
-            employee.departmentName ||
-            (employee as any)?.user?.departmentName ||
-            (employee as any)?.User?.DepartmentName;
-
-        // Filter chỉ loại bỏ null, undefined, và empty string
         const infoParts = [
             employee.PositionName,
             employee.roleName,
@@ -109,31 +91,6 @@ export default function AdminTaskScreen() {
     return (
         <SidebarLayout title="Tác vụ" activeKey="task">
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                {/* ----- SECTION: DANH MỤC ----- */}
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("category")}>
-                    <Text style={styles.sectionTitle}>Danh mục</Text>
-                    {expanded.category ? <ChevronUp size={20} color="#333" /> : <ChevronDown size={20} color="#333" />}
-                </TouchableOpacity>
-
-                {expanded.category && (
-                    <View style={styles.cardRow}>
-                        <TaskCard
-                            icon={<Store size={32} />}
-                            label="Chi nhánh"
-                            onPress={() => router.push("/adminfunction/branch-management")}
-                        />
-                        <TaskCard
-                            icon={<SquareUser size={32} />}
-                            label="Bộ phận"
-                            onPress={() => router.push("/adminfunction/department-management")}
-                        />
-                        <TaskCard
-                            icon={<UserRoundPen size={32} />}
-                            label="Chức danh"
-                            onPress={() => router.push("/adminfunction/position-management")}
-                        />
-                    </View>
-                )}
                 {/* ----- SECTION: NHÂN VIÊN ----- */}
                 <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("employee")}>
                     <Text style={styles.sectionTitle}>Nhân viên</Text>
@@ -210,37 +167,6 @@ export default function AdminTaskScreen() {
                                 router.push("/function/shift-approval");
                             }}
                         />
-                    </View>
-                )}
-
-                {/* ----- SECTION: CẤU HÌNH ----- */}
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("configuration")}>
-                    <Text style={styles.sectionTitle}>Cấu hình</Text>
-                    {expanded.configuration ? <ChevronUp size={20} color="#333" /> : <ChevronDown size={20} color="#333" />}
-                </TouchableOpacity>
-
-                {expanded.configuration && (
-                    <View style={styles.cardRow}>
-                        <TaskCard icon={<Settings2 size={32} />} label="Cài đặt hệ thống" />
-                        <TaskCard icon={<Wrench size={32} />} label="Phân quyền" />
-                        <TaskCard icon={<CircleDollarSign size={32} />} label="Cấu hình tiền thưởng/phạt" />
-                        <TaskCard icon={<CircleEqual size={32} />} label="Cấu hình phụ cấp" />
-                    </View>
-                )}
-
-                {/* ----- SECTION: LƯƠNG ----- */}
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("payroll")}>
-                    <Text style={styles.sectionTitle}>Lương</Text>
-                    {expanded.payroll ? <ChevronUp size={20} color="#333" /> : <ChevronDown size={20} color="#333" />}
-                </TouchableOpacity>
-
-                {expanded.payroll && (
-                    <View style={styles.cardRow}>
-                        <TaskCard icon={<UserRound size={32} />} label="Hệ số lương" />
-                        <TaskCard icon={<PackageCheck size={32} />} label="Đánh giá KPI" />
-                        <TaskCard icon={<TagsIcon size={32} />} label="Phiếu tạm ứng lương" />
-                        <TaskCard icon={<CopyPlus size={32} />} label="Phiếu cộng tiền" />
-                        <TaskCard icon={<CircleMinus size={32} />} label="Phiếu trừ tiền" />
                     </View>
                 )}
             </ScrollView>

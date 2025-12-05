@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from "rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { AuthContext } from "../../../context/AuthContext";
-import SidebarLayout from "../../../components/SidebarLayout";
+
 
 type QuickActionType = {
     id: string;
@@ -13,7 +13,7 @@ type QuickActionType = {
     color: string;
 };
 
-const HomeScreen = () => {
+const ManagerHomeScreen = () => {
     const authContext = useContext(AuthContext);
     const router = useRouter();
     const [greeting, setGreeting] = useState('');
@@ -30,9 +30,9 @@ const HomeScreen = () => {
     };
 
     const user = authContext?.user;
-    const userName = user?.fullname || user?.username || 'User';
+    const userName = user?.fullname || user?.username || 'Manager';
     const userDepartment = user?.departmentName || 'Nhân viên';
-    const userPosition = user?.positionTitle || '';
+    const userPosition = user?.positionName || '';
 
     const handleActionPress = (actionId: string) => {
         // TODO: Tạo các trang này sau
@@ -111,16 +111,16 @@ const HomeScreen = () => {
                         <View style={styles.headerContent}>
                             <View style={styles.headerLeft}>
                                 <Text style={styles.greetingText}>{greeting}</Text>
-                                <View style={styles.userInfo}>
-                                    <Text style={styles.userName}>{userName}</Text>
-                                    {userPosition && (
+                                <Text style={styles.userName}>{userName}</Text>
+                                {userDepartment && (
+                                    <Text style={styles.departmentText}>{userDepartment}</Text>
+                                )}
+                                {userPosition && (
+                                    <View style={{ alignSelf: 'flex-start', marginTop: 4 }}>
                                         <View style={styles.badge}>
                                             <Text style={styles.badgeText}>{userPosition}</Text>
                                         </View>
-                                    )}
-                                </View>
-                                {userDepartment && (
-                                    <Text style={styles.departmentText}>{userDepartment}</Text>
+                                    </View>
                                 )}
                                 <Text style={styles.motivationText}>Chúc bạn một ngày làm việc hiệu quả</Text>
                             </View>
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     },
     badge: {
         backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        paddingHorizontal: 12,
+        paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
     },
@@ -426,4 +426,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default HomeScreen;
+export default ManagerHomeScreen;

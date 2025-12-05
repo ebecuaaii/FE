@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, TouchableWithoutFeedback } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Menu, Home, CheckSquare, Bell, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { AuthContext } from '../context/AuthContext';
 
 type MenuKey = 'home' | 'task' | 'notification' | 'account';
 type MenuRoute = string;
@@ -22,6 +23,7 @@ type MenuItem = {
 
 const SidebarLayout: React.FC<Props> = ({ title, activeKey, children }) => {
   const router = useRouter();
+  const authContext = useContext(AuthContext);
   const sidebarWidth = 270;
   const slideAnim = useRef(new Animated.Value(-sidebarWidth)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
@@ -32,14 +34,73 @@ const SidebarLayout: React.FC<Props> = ({ title, activeKey, children }) => {
     setSelectedKey(activeKey);
   }, [activeKey]);
 
+  // Xác định role của user
+  const getUserRole = () => {
+    const user = authContext?.user;
+    const roleIdRaw = user?.roleId || (user as any)?.RoleId || (user as any)?.role_id;
+    const roleId = typeof roleIdRaw === 'string' ? parseInt(roleIdRaw) : roleIdRaw;
+    const userRole = (user?.roleName || user?.role || '')?.toLowerCase();
+    const userPosition = (
+      user?.positionTitle ||
+      user?.position ||
+      (user as any)?.PositionName ||
+      ''
+    )?.toLowerCase();
+    const userDepartment = (
+      user?.departmentName ||
+      user?.department ||
+      (user as any)?.DepartmentName ||
+      ''
+    )?.toLowerCase();
+
+    // Phân quyền theo roleId:
+    // roleId = 1 → Admin
+    // roleId = 2 → Manager
+    // roleId = 3 hoặc khác → Employee
+    const isAdmin = roleId === 1 || userRole === 'admin';
+    const isManager = roleId === 2 ||
+      (!isAdmin && (
+        userRole === 'manager' ||
+        userPosition?.includes('manager') ||
+        userPosition?.includes('quản lý') ||
+        userPosition?.includes('quản lý chi nhánh') ||
+        userDepartment?.includes('manager') ||
+        userDepartment?.includes('quản lý')
+      ));
+
+    if (isAdmin) return 'admin';
+    if (isManager) return 'manager';
+    return 'employee';
+  };
+
+  const userRole = getUserRole();
+
   const menuItems = useMemo<MenuItem[]>(
-    () => [
-      { key: 'home', label: 'Trang chủ', icon: Home, route: '/drawer/(tabs)/home' },
-      { key: 'task', label: 'Tác vụ', icon: CheckSquare, route: '/drawer/(tabs)/task' },
-      { key: 'notification', label: 'Thông báo', icon: Bell, route: '/drawer/(tabs)/notification' },
-      { key: 'account', label: 'Tài khoản', icon: User, route: '/drawer/(tabs)/account' },
-    ],
-    []
+    () => {
+      if (userRole === 'admin') {
+        return [
+          { key: 'home', label: 'Trang chủ', icon: Home, route: '/drawer/(tabs)/admin-home' },
+          { key: 'task', label: 'Tác vụ', icon: CheckSquare, route: '/drawer/(tabs)/admin-task' },
+          { key: 'notification', label: 'Thông báo', icon: Bell, route: '/drawer/(tabs)/notification' },
+          { key: 'account', label: 'Tài khoản', icon: User, route: '/drawer/(tabs)/account' },
+        ];
+      } else if (userRole === 'manager') {
+        return [
+          { key: 'home', label: 'Trang chủ', icon: Home, route: '/drawer/(tabs)/manager-home' },
+          { key: 'task', label: 'Tác vụ', icon: CheckSquare, route: '/drawer/(tabs)/manager-task' },
+          { key: 'notification', label: 'Thông báo', icon: Bell, route: '/drawer/(tabs)/notification' },
+          { key: 'account', label: 'Tài khoản', icon: User, route: '/drawer/(tabs)/account' },
+        ];
+      } else {
+        return [
+          { key: 'home', label: 'Trang chủ', icon: Home, route: '/drawer/(tabs)/home' },
+          { key: 'task', label: 'Tác vụ', icon: CheckSquare, route: '/drawer/(tabs)/task' },
+          { key: 'notification', label: 'Thông báo', icon: Bell, route: '/drawer/(tabs)/notification' },
+          { key: 'account', label: 'Tài khoản', icon: User, route: '/drawer/(tabs)/account' },
+        ];
+      }
+    },
+    [userRole]
   );
 
   const openSidebar = () => {

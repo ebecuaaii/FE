@@ -13,6 +13,7 @@ const SignUpScreen = (props: Props) => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [fullname, setFullname] = useState('');
     const [phone, setPhone] = useState('');
+    const [branchCode, setBranchCode] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSignUp = async () => {
@@ -35,10 +36,71 @@ const SignUpScreen = (props: Props) => {
                 fullname,
                 email,
                 phone: phone || "",
+                branchCode: branchCode.trim() || undefined,
             });
+
+            // Debug: Log toàn bộ response để xem backend trả về gì
+            console.log('SignUp Response:', JSON.stringify(response, null, 2));
+            console.log('User data:', response?.user);
+
             Alert.alert('Success', 'Account created successfully');
-            // Chuyển sang tabs home
-            router.replace('/drawer/(tabs)/home');
+
+            // Kiểm tra roleId từ response
+            const user = response?.user;
+            const roleIdRaw = user?.roleId || (user as any)?.RoleId || (user as any)?.role_id;
+            const roleId = typeof roleIdRaw === 'string' ? parseInt(roleIdRaw) : roleIdRaw;
+
+            // Kiểm tra nhiều variant của field names
+            const userRole = (user?.roleName || user?.role || '')?.toLowerCase();
+            const userPosition = (
+                user?.positionTitle ||
+                user?.position ||
+                (user as any)?.PositionName ||
+                ''
+            )?.toLowerCase();
+            const userDepartment = (
+                user?.departmentName ||
+                user?.department ||
+                (user as any)?.DepartmentName ||
+                ''
+            )?.toLowerCase();
+
+            console.log('SignUp - Checking user role:', {
+                roleId,
+                userRole,
+                userPosition,
+                userDepartment,
+                fullUser: user
+            });
+
+            // Phân quyền theo roleId:
+            // roleId = 1 → Admin
+            // roleId = 2 → Manager
+            // roleId = 3 hoặc khác → Employee
+
+            const isAdmin = roleId === 1 || userRole === 'admin';
+            const isManager = roleId === 2 ||
+                (!isAdmin && (
+                    userRole === 'manager' ||
+                    userPosition?.includes('manager') ||
+                    userPosition?.includes('quản lý') ||
+                    userPosition?.includes('quản lý chi nhánh') ||
+                    userDepartment?.includes('manager') ||
+                    userDepartment?.includes('quản lý')
+                ));
+
+            console.log('SignUp - User type:', { roleId, isAdmin, isManager });
+
+            if (isAdmin) {
+                // Admin chuyển đến admin-task
+                router.replace('/drawer/(tabs)/admin-task');
+            } else if (isManager) {
+                // Manager chuyển đến manager-home
+                router.replace('/drawer/(tabs)/manager-home');
+            } else {
+                // Nhân viên thường chuyển đến home
+                router.replace('/drawer/(tabs)/home');
+            }
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || error.message || 'Sign up failed';
             Alert.alert('Error', errorMessage);
@@ -110,6 +172,19 @@ const SignUpScreen = (props: Props) => {
                         editable={!loading}
                         keyboardType="phone-pad"
                     />
+
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Branch Code (Optional)"
+                        placeholderTextColor="#9ca3af"
+                        value={branchCode}
+                        onChangeText={setBranchCode}
+                        editable={!loading}
+                        autoCapitalize="characters"
+                    />
+                    <Text style={styles.helperText}>
+                        Nhập mã chi nhánh nếu bạn được mời làm việc
+                    </Text>
 
                     <TextInput
                         style={styles.input}
@@ -317,6 +392,13 @@ const styles = StyleSheet.create({
         color: "#0d9488",
         fontSize: 15,
         fontWeight: "bold",
+    },
+    helperText: {
+        fontSize: 12,
+        color: "#6b7280",
+        marginTop: -8,
+        marginBottom: 12,
+        fontStyle: "italic",
     },
 });
 

@@ -7,7 +7,7 @@ type Props = {};
 
 const SignInScreen = (props: Props) => {
     const router = useRouter();
-    const { login } = useContext(AuthContext);
+    const { login, user } = useContext(AuthContext);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -20,8 +20,75 @@ const SignInScreen = (props: Props) => {
 
         setLoading(true);
         try {
-            await login(username, password);
-            router.replace('/drawer/(tabs)/home');
+            const userData = await login(username, password);
+
+            // Debug: Log user data
+            console.log('SignIn User Data:', JSON.stringify(userData, null, 2));
+
+            // Kiểm tra roleId để quyết định redirect
+            const roleIdRaw = userData?.roleId || (userData as any)?.RoleId || (userData as any)?.role_id;
+            const roleId = typeof roleIdRaw === 'string' ? parseInt(roleIdRaw) : roleIdRaw;
+            const userRole = (userData?.roleName || userData?.role || '')?.toLowerCase();
+            const userPosition = (
+                userData?.positionTitle ||
+                userData?.position ||
+                (userData as any)?.PositionName ||
+                ''
+            )?.toLowerCase();
+            const userDepartment = (
+                userData?.departmentName ||
+                userData?.department ||
+                (userData as any)?.DepartmentName ||
+                ''
+            )?.toLowerCase();
+
+            console.log('SignIn - Checking user role:', {
+                roleIdRaw,
+                roleId,
+                roleIdType: typeof roleId,
+                userRole,
+                userPosition,
+                userDepartment,
+                fullUser: userData
+            });
+
+            // Phân quyền theo roleId:
+            // roleId = 1 → Admin
+            // roleId = 2 → Manager
+            // roleId = 3 hoặc khác → Employee
+
+            const isAdmin = roleId === 1 || userRole === 'admin';
+            const isManager = roleId === 2 ||
+                (!isAdmin && (
+                    userRole === 'manager' ||
+                    userPosition?.includes('manager') ||
+                    userPosition?.includes('quản lý') ||
+                    userPosition?.includes('quản lý chi nhánh') ||
+                    userDepartment?.includes('manager') ||
+                    userDepartment?.includes('quản lý')
+                ));
+
+            console.log('SignIn - User type:', {
+                roleId,
+                isAdmin,
+                isManager,
+                roleIdCheck: `roleId === 1: ${roleId === 1}, roleId === 2: ${roleId === 2}`,
+                userRoleCheck: `userRole === 'admin': ${userRole === 'admin'}, userRole === 'manager': ${userRole === 'manager'}`
+            });
+
+            if (isAdmin) {
+                // Admin chuyển đến admin-task
+                console.log('Redirecting to admin-task');
+                router.replace('/drawer/(tabs)/admin-task');
+            } else if (isManager) {
+                // Manager chuyển đến manager-home
+                console.log('Redirecting to manager-home');
+                router.replace('/drawer/(tabs)/manager-home');
+            } else {
+                // Nhân viên thường chuyển đến home
+                console.log('Redirecting to home');
+                router.replace('/drawer/(tabs)/home');
+            }
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || 'Đăng nhập thất bại';
             alert(errorMessage);

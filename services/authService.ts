@@ -31,6 +31,7 @@ export interface SignUpRequest {
     fullname: string;
     email: string;
     phone?: string;
+    branchCode?: string;
 }
 
 export interface SignInRequest {
@@ -48,8 +49,12 @@ export interface AuthResponse {
         fullname?: string;
         phone?: string;
         position?: string;
+        positionTitle?: string;
         department?: string;
+        departmentName?: string;
         role?: 'admin' | 'manager' | 'employee';
+        roleName?: string;
+        roleId?: number;
     };
 }
 
