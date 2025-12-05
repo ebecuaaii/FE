@@ -38,7 +38,7 @@ const SignUpScreen = (props: Props) => {
             });
             Alert.alert('Success', 'Account created successfully');
             // Chuyển sang tabs home
-            router.replace('/(tabs)');
+            router.replace('/drawer/(tabs)/home');
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || error.message || 'Sign up failed';
             Alert.alert('Error', errorMessage);
@@ -74,6 +74,7 @@ const SignUpScreen = (props: Props) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Full Name"
+                        placeholderTextColor="#9ca3af"
                         value={fullname}
                         onChangeText={setFullname}
                         editable={!loading}
@@ -82,6 +83,7 @@ const SignUpScreen = (props: Props) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Username"
+                        placeholderTextColor="#9ca3af"
                         value={username}
                         onChangeText={setUsername}
                         editable={!loading}
@@ -91,6 +93,7 @@ const SignUpScreen = (props: Props) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Email"
+                        placeholderTextColor="#9ca3af"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -101,6 +104,7 @@ const SignUpScreen = (props: Props) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Phone (Optional)"
+                        placeholderTextColor="#9ca3af"
                         value={phone}
                         onChangeText={setPhone}
                         editable={!loading}
@@ -110,6 +114,7 @@ const SignUpScreen = (props: Props) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Password"
+                        placeholderTextColor="#9ca3af"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
@@ -119,6 +124,7 @@ const SignUpScreen = (props: Props) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Confirm Password"
+                        placeholderTextColor="#9ca3af"
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         secureTextEntry

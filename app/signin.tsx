@@ -51,6 +51,7 @@ const SignInScreen = (props: Props) => {
             <TextInput
                 style={styles.input}
                 placeholder="Username"
+                placeholderTextColor="#9ca3af"
                 value={username}
                 onChangeText={setUsername}
                 editable={!loading}
@@ -60,6 +61,7 @@ const SignInScreen = (props: Props) => {
             <TextInput
                 style={styles.input}
                 placeholder="Password"
+                placeholderTextColor="#9ca3af"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry

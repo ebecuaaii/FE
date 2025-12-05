@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from "react-native";
-import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, Settings2, Wrench, CircleDollarSign, CircleEqual, UserRound, PackageCheck, TagsIcon, CopyPlus, CircleMinus, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X } from "lucide-react-native";
+import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, Settings2, Wrench, CircleDollarSign, CircleEqual, UserRound, PackageCheck, TagsIcon, CopyPlus, CircleMinus, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X, Store, SquareUser, UserRoundPen } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import SidebarLayout from "../../../components/SidebarLayout";
 import { employeeService, Employee } from "../../../services/employeeService";
@@ -8,6 +8,7 @@ import { employeeService, Employee } from "../../../services/employeeService";
 export default function AdminTaskScreen() {
     const router = useRouter();
     const [expanded, setExpanded] = useState({
+        category: true,
         employee: true,
         schedule: true,
         attendance: true,
@@ -15,7 +16,7 @@ export default function AdminTaskScreen() {
         payroll: true
     });
 
-    type ExpandKey = "employee" | "schedule" | "attendance" | "configuration" | "payroll";
+    type ExpandKey = "category" | "employee" | "schedule" | "attendance" | "configuration" | "payroll";
     const [employeeModalVisible, setEmployeeModalVisible] = useState(false);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [employeeLoading, setEmployeeLoading] = useState(false);
@@ -108,6 +109,31 @@ export default function AdminTaskScreen() {
     return (
         <SidebarLayout title="Tác vụ" activeKey="task">
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+                {/* ----- SECTION: DANH MỤC ----- */}
+                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("category")}>
+                    <Text style={styles.sectionTitle}>Danh mục</Text>
+                    {expanded.category ? <ChevronUp size={20} color="#333" /> : <ChevronDown size={20} color="#333" />}
+                </TouchableOpacity>
+
+                {expanded.category && (
+                    <View style={styles.cardRow}>
+                        <TaskCard
+                            icon={<Store size={32} />}
+                            label="Chi nhánh"
+                            onPress={() => router.push("/adminfunction/branch-management")}
+                        />
+                        <TaskCard
+                            icon={<SquareUser size={32} />}
+                            label="Bộ phận"
+                            onPress={() => router.push("/adminfunction/department-management")}
+                        />
+                        <TaskCard
+                            icon={<UserRoundPen size={32} />}
+                            label="Chức danh"
+                            onPress={() => router.push("/adminfunction/position-management")}
+                        />
+                    </View>
+                )}
                 {/* ----- SECTION: NHÂN VIÊN ----- */}
                 <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("employee")}>
                     <Text style={styles.sectionTitle}>Nhân viên</Text>
