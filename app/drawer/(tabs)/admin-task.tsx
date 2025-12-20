@@ -3,10 +3,12 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIn
 import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, Settings2, Wrench, CircleDollarSign, CircleEqual, UserRound, PackageCheck, TagsIcon, CopyPlus, CircleMinus, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X, Store, SquareUser, UserRoundPen } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import SidebarLayout from "../../../components/SidebarLayout";
-import { employeeService, Employee } from "../../../services/employeeService";
+import { employeeService } from "../../../services/employeeService";
+import type { Employee } from "../../../services/employeeService";
 
 export default function AdminTaskScreen() {
     const router = useRouter();
+    type ExpandKey = "category" | "employee" | "schedule" | "attendance" | "payroll" | "configuration";
     const [expanded, setExpanded] = useState({
         category: true,
         employee: true,
@@ -15,8 +17,6 @@ export default function AdminTaskScreen() {
         configuration: true,
         payroll: true
     });
-
-    type ExpandKey = "category" | "employee" | "schedule" | "attendance" | "configuration" | "payroll";
     const [employeeModalVisible, setEmployeeModalVisible] = useState(false);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [employeeLoading, setEmployeeLoading] = useState(false);
@@ -202,7 +202,7 @@ export default function AdminTaskScreen() {
 
                 {expanded.attendance && (
                     <View style={styles.cardRow}>
-                        <TaskCard icon={<SquareLibrary size={32} />} label="Báo cáo chấm công" />
+                        <TaskCard icon={<SquareLibrary size={32} />} label="Báo cáo chấm công" onPress={() => { router.push("/adminfunction/late-arrivals") }} />
                         <TaskCard
                             icon={<ListCollapse size={32} />}
                             label="Yêu cầu bổ sung chấm công"
@@ -212,22 +212,6 @@ export default function AdminTaskScreen() {
                         />
                     </View>
                 )}
-
-                {/* ----- SECTION: CẤU HÌNH ----- */}
-                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("configuration")}>
-                    <Text style={styles.sectionTitle}>Cấu hình</Text>
-                    {expanded.configuration ? <ChevronUp size={20} color="#333" /> : <ChevronDown size={20} color="#333" />}
-                </TouchableOpacity>
-
-                {expanded.configuration && (
-                    <View style={styles.cardRow}>
-                        <TaskCard icon={<Settings2 size={32} />} label="Cài đặt hệ thống" />
-                        <TaskCard icon={<Wrench size={32} />} label="Phân quyền" />
-                        <TaskCard icon={<CircleDollarSign size={32} />} label="Cấu hình tiền thưởng/phạt" />
-                        <TaskCard icon={<CircleEqual size={32} />} label="Cấu hình phụ cấp" />
-                    </View>
-                )}
-
                 {/* ----- SECTION: LƯƠNG ----- */}
                 <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("payroll")}>
                     <Text style={styles.sectionTitle}>Lương</Text>
@@ -239,8 +223,16 @@ export default function AdminTaskScreen() {
                         <TaskCard icon={<UserRound size={32} />} label="Hệ số lương" />
                         <TaskCard icon={<PackageCheck size={32} />} label="Đánh giá KPI" />
                         <TaskCard icon={<TagsIcon size={32} />} label="Phiếu tạm ứng lương" />
-                        <TaskCard icon={<CopyPlus size={32} />} label="Phiếu cộng tiền" />
-                        <TaskCard icon={<CircleMinus size={32} />} label="Phiếu trừ tiền" />
+                        <TaskCard
+                            icon={<CopyPlus size={32} />}
+                            label="Phiếu cộng tiền"
+                            onPress={() => router.push("/adminfunction/create-reward")}
+                        />
+                        <TaskCard
+                            icon={<CircleMinus size={32} />}
+                            label="Phiếu trừ tiền"
+                            onPress={() => router.push("/adminfunction/create-penalty")}
+                        />
                     </View>
                 )}
             </ScrollView>
@@ -294,18 +286,20 @@ export default function AdminTaskScreen() {
 }
 
 // ========================= COMPONENT CARD =========================
+interface TaskCardProps {
+    icon: React.ReactElement<any>;
+    label: string;
+    iconColor?: string;
+    onPress?: () => void;
+}
+
 function TaskCard({
     icon,
     label,
     iconColor = "#0d9488",
     onPress,
-}: {
-    icon: any;
-    label: string;
-    iconColor?: string;
-    onPress?: () => void;
-}) {
-    const coloredIcon = React.cloneElement(icon, { color: iconColor });
+}: TaskCardProps) {
+    const coloredIcon = React.cloneElement(icon, { color: iconColor } as any);
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
             {coloredIcon}

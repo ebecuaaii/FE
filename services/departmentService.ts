@@ -60,8 +60,20 @@ export const departmentService = {
 
     // Tạo bộ phận mới (Admin only)
     createDepartment: async (data: CreateDepartmentRequest): Promise<Department> => {
-        const response = await axiosClient.post('/api/Department', data);
-        return normalizeDepartment(response.data);
+        console.log('Creating department with data:', JSON.stringify(data, null, 2));
+        try {
+            const response = await axiosClient.post('/api/Department', data);
+            return normalizeDepartment(response.data);
+        } catch (error: any) {
+            console.error('Department creation error:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                headers: error.response?.headers,
+                requestData: data
+            });
+            throw error;
+        }
     },
 
     // Cập nhật bộ phận (Admin only)

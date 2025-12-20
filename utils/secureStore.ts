@@ -45,7 +45,7 @@ export async function getUserData(): Promise<any | null> {
         } else {
             userData = await SecureStore.getItemAsync("userData");
         }
-        
+
         if (userData) {
             return JSON.parse(userData);
         }
@@ -62,4 +62,9 @@ export async function removeUserData() {
     } else {
         await SecureStore.deleteItemAsync("userData");
     }
+}
+
+export async function getUserId(): Promise<string | null> {
+    const userData = await getUserData();
+    return userData?.id || userData?.userId || null;
 }

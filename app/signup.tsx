@@ -215,46 +215,6 @@ const SignUpScreen = (props: Props) => {
                     <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Sign Up'}</Text>
                 </TouchableOpacity>
 
-                {/* Divider */}
-                <View style={styles.dividerContainer}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>OR</Text>
-                    <View style={styles.dividerLine} />
-                </View>
-
-                {/* Social Login Buttons */}
-                <View style={styles.socialContainer}>
-                    <TouchableOpacity
-                        style={styles.socialButton}
-                        onPress={() => handleSocialLogin('Google')}
-                    >
-                        <Image
-                            source={{ uri: 'https://cdn.cdnlogo.com/logos/g/35/google-icon.svg' }}
-                            style={styles.socialIcon}
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.socialButton}
-                        onPress={() => handleSocialLogin('Facebook')}
-                    >
-                        <Image
-                            source={{ uri: 'https://cdn.cdnlogo.com/logos/f/83/facebook.svg' }}
-                            style={styles.socialIcon}
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.socialButton}
-                        onPress={() => handleSocialLogin('Apple')}
-                    >
-                        <Image
-                            source={{ uri: 'https://cdn.cdnlogo.com/logos/a/15/apple.svg' }}
-                            style={styles.socialIcon}
-                        />
-                    </TouchableOpacity>
-                </View>
-
                 {/* Sign In Link */}
                 <View style={styles.signinContainer}>
                     <Text style={styles.signinText}>Already have an account? </Text>

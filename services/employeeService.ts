@@ -9,6 +9,8 @@ export type Employee = {
     departmentName?: string;
     roleName?: string;
     PositionName?: string; // Có thể API trả về userPosition
+    branchName?: string; // Tên chi nhánh
+    branchId?: string | number; // ID chi nhánh
 
     [key: string]: any; // Cho phép các field khác
 };

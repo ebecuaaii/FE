@@ -14,6 +14,9 @@ import {
   FolderCode,
   FileText,
   Wallet,
+  CalendarX,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react-native";
 import { Tabs, useRouter } from "expo-router";
 import SidebarLayout from "../../../components/SidebarLayout";
@@ -29,9 +32,10 @@ export default function TaskScreen() {
     work: true,
     checkin: true,
     salary: true,
+    request: true,
     communication: true
   });
-  type ExpandKey = "work" | "checkin" | "salary" | "communication";
+  type ExpandKey = "work" | "checkin" | "salary" | "request" | "communication";
 
   const toggle = (key: ExpandKey) => {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -89,7 +93,11 @@ export default function TaskScreen() {
 
         {expanded.checkin && (
           <View style={styles.cardRow}>
-            <TaskCard icon={<Clock size={32} />} label="Bổ sung/ Sửa chấm công" />
+            <TaskCard
+              icon={<Clock size={32} />}
+              label="Bổ sung/ Sửa chấm công"
+              onPress={() => router.push("/function/attendance-supplement")}
+            />
             <TaskCard icon={<Smartphone size={32} />} label="Thiết bị chấm công" />
           </View>
         )}
@@ -102,11 +110,49 @@ export default function TaskScreen() {
 
         {expanded.salary && (
           <View style={styles.cardRow}>
-            <TaskCard icon={<Wallet size={32} />} label="Bảng lương" />
-            <TaskCard icon={<DollarSign size={32} />} label="Tính lương" />
-            <TaskCard icon={<FileText size={32} />} label="Phiếu lương" />
+            <TaskCard
+              icon={<Wallet size={32} />}
+              label="Bảng lương"
+              onPress={() => router.push("/function/monthly-salary")}
+            />
+            <TaskCard
+              icon={<DollarSign size={32} />}
+              label="Hiệu quả làm việc"
+              onPress={() => router.push("/function/work-performance")}
+            />
+            <TaskCard
+              icon={<FileText size={32} />}
+              label="Phiếu lương"
+              onPress={() => router.push("/function/payslip")}
+            />
           </View>
         )}
+        {/* ----- SECTION: YÊU CẦU ----- */}
+        <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("request")}>
+          <Text style={styles.sectionTitle}>Yêu cầu</Text>
+          {expanded.request ? <ChevronUp /> : <ChevronDown />}
+        </TouchableOpacity>
+
+        {expanded.request && (
+          <View style={styles.cardRow}>
+            <TaskCard
+              icon={<CalendarX size={32} />}
+              label="Xin nghỉ phép"
+              onPress={() => router.push("/function/leave-request")}
+            />
+            <TaskCard
+              icon={<AlertCircle size={32} />}
+              label="Xin đi trễ"
+              onPress={() => router.push("/function/late-request")}
+            />
+            <TaskCard
+              icon={<RefreshCw size={32} />}
+              label="Xin đổi ca"
+              onPress={() => router.push("/function/shift-swap-request")}
+            />
+          </View>
+        )}
+
         {/* ----- SECTION: TRUYỀN THÔNG NỘI BỘ ----- */}
         <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("communication")}>
           <Text style={styles.sectionTitle}>Truyển thông nội bộ</Text>

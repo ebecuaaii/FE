@@ -54,10 +54,10 @@ export default function AccountScreen() {
   };
 
   const menuItems = [
-    { id: '1', icon: '👤', title: 'Thông tin cá nhân', subtitle: 'Cập nhật thông tin của bạn' },
-    { id: '2', icon: '🔒', title: 'Đổi mật khẩu', subtitle: 'Thay đổi mật khẩu' },
-    { id: '3', icon: '🔔', title: 'Thông báo', subtitle: 'Cài đặt thông báo' },
-    { id: '4', icon: '⚙️', title: 'Cài đặt', subtitle: 'Cài đặt ứng dụng' },
+    { id: '1', title: 'Thông tin cá nhân', subtitle: 'Cập nhật thông tin của bạn' },
+    { id: '2', title: 'Đổi mật khẩu', subtitle: 'Thay đổi mật khẩu' },
+    { id: '3', title: 'Thông báo', subtitle: 'Cài đặt thông báo' },
+    { id: '4', title: 'Cài đặt', subtitle: 'Cài đặt ứng dụng' },
   ];
 
   return (
@@ -93,9 +93,7 @@ export default function AccountScreen() {
             style={styles.menuItem}
             onPress={() => handleMenuPress(item.id)}
           >
-            <View style={styles.menuIconContainer}>
-              <Text style={styles.menuIcon}>{item.icon}</Text>
-            </View>
+
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{item.title}</Text>
               <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
@@ -106,7 +104,7 @@ export default function AccountScreen() {
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutIcon}>🚪</Text>
+
           <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>
       </View>
@@ -187,18 +185,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  menuIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f0fdfa',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  menuIcon: {
-    fontSize: 24,
-  },
+
   menuTextContainer: {
     flex: 1,
   },
@@ -228,10 +215,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fecaca',
   },
-  logoutIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
+
   logoutText: {
     fontSize: 16,
     fontWeight: '600',

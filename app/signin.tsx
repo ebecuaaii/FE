@@ -143,45 +143,7 @@ const SignInScreen = (props: Props) => {
                 <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.dividerContainer}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
-            </View>
 
-            {/* Social Login Buttons */}
-            <View style={styles.socialContainer}>
-                <TouchableOpacity
-                    style={[styles.socialButton, styles.googleButton]}
-                    onPress={() => handleSocialLogin('Google')}
-                >
-                    <Image
-                        source={require('../assets/images/gmail_5968534.png')}
-                        style={styles.socialIcon}
-                    />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.socialButton, styles.facebookButton]}
-                    onPress={() => handleSocialLogin('Facebook')}
-                >
-                    <Image
-                        source={{ uri: 'https://simpleicons.org/icons/facebook.svg' }}
-                        style={[styles.socialIcon, { tintColor: '#1877F2' }]}
-                    />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.socialButton, styles.appleButton]}
-                    onPress={() => handleSocialLogin('Apple')}
-                >
-                    <Image
-                        source={{ uri: 'https://simpleicons.org/icons/apple.svg' }}
-                        style={[styles.socialIcon, { tintColor: '#000000' }]}
-                    />
-                </TouchableOpacity>
-            </View>
 
             <View style={styles.signupContainer}>
                 <Text style={styles.signupText}>Don't have an account? </Text>

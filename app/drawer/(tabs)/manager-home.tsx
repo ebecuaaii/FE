@@ -48,9 +48,8 @@ const ManagerHomeScreen = () => {
                 // router.push('/leave-request');
                 alert('Chức năng đăng ký nghỉ đang phát triển');
                 break;
-            case '4': // Kỳ lương
-                // router.push('/salary');
-                alert('Chức năng kỳ lương đang phát triển');
+            case '4': // Kỳ lương - Hiển thị hiệu quả làm việc
+                router.push('/function/work-performance');
                 break;
             case '5': // Bảng tin
                 // router.push('/news');

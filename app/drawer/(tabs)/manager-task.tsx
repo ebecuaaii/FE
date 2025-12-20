@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from "react-native";
-import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X } from "lucide-react-native";
+import { ChevronDown, ChevronUp, UserRoundPlus, ListCollapse, CalendarCheck, CalendarDays, CalendarRange, FolderCheck, SquareLibrary, X, DollarSign, FileText, Receipt, Gift, AlertCircle } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import SidebarLayout from "../../../components/SidebarLayout";
 import { employeeService, Employee } from "../../../services/employeeService";
@@ -11,9 +11,10 @@ export default function ManagerTaskScreen() {
         employee: true,
         schedule: true,
         attendance: true,
+        payroll: true,
     });
 
-    type ExpandKey = "employee" | "schedule" | "attendance";
+    type ExpandKey = "employee" | "schedule" | "attendance" | "payroll";
     const [employeeModalVisible, setEmployeeModalVisible] = useState(false);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [employeeLoading, setEmployeeLoading] = useState(false);
@@ -166,6 +167,44 @@ export default function ManagerTaskScreen() {
                             onPress={() => {
                                 router.push("/function/shift-approval");
                             }}
+                        />
+                    </View>
+                )}
+
+                {/* ----- SECTION: BẢNG LƯƠNG ----- */}
+                <TouchableOpacity style={styles.sectionHeader} onPress={() => toggle("payroll")}>
+                    <Text style={styles.sectionTitle}>Bảng lương</Text>
+                    {expanded.payroll ? <ChevronUp size={20} color="#333" /> : <ChevronDown size={20} color="#333" />}
+                </TouchableOpacity>
+
+                {expanded.payroll && (
+                    <View style={styles.cardRow}>
+                        <TaskCard
+                            icon={<DollarSign size={32} />}
+                            label="Lương theo ngày"
+                            onPress={() => router.push("/function/daily-salary")}
+                        />
+                        <TaskCard
+                            icon={<Receipt size={32} />}
+                            label="Lương theo tháng"
+                            onPress={() => router.push("/function/monthly-salary")}
+                        />
+                        <TaskCard
+                            icon={<FileText size={32} />}
+                            label="Phiếu lương"
+                            onPress={() => router.push("/function/payslip")}
+                        />
+                        <TaskCard
+                            icon={<Gift size={32} />}
+                            iconColor="#10b981"
+                            label="Phiếu cộng tiền"
+                            onPress={() => router.push("/adminfunction/create-reward")}
+                        />
+                        <TaskCard
+                            icon={<AlertCircle size={32} />}
+                            iconColor="#ef4444"
+                            label="Phiếu trừ tiền"
+                            onPress={() => router.push("/adminfunction/create-penalty")}
                         />
                     </View>
                 )}

@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { getToken } from '../utils/secureStore';
 
-const API_BASE_URL = 'http://10.0.18.208:5267';
+const API_BASE_URL = 'http://10.0.1.32:5267';
 
 const axiosInstance: AxiosInstance = axios.create({
     baseURL: API_BASE_URL,

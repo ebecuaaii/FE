@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { AuthContext } from "../../../context/AuthContext";
 import SidebarLayout from "../../../components/SidebarLayout";
+import payrollService from "../../../services/payrollService";
+import { getUserId } from "../../../utils/secureStore";
 
 type QuickActionType = {
     id: string;
@@ -17,10 +19,40 @@ const HomeScreen = () => {
     const authContext = useContext(AuthContext);
     const router = useRouter();
     const [greeting, setGreeting] = useState('');
+    const [currentMonthSalary, setCurrentMonthSalary] = useState<number | null>(null);
+    const [salaryPeriod, setSalaryPeriod] = useState('');
 
     useEffect(() => {
         setGreeting(getGreeting());
+        loadCurrentMonthSalary();
     }, []);
+
+    const loadCurrentMonthSalary = async () => {
+        try {
+            const userId = await getUserId();
+            if (!userId) return;
+
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear();
+
+            // Set salary period
+            const startDate = new Date(year, month - 1, 1);
+            const endDate = new Date(year, month, 0);
+            setSalaryPeriod(
+                `${startDate.getDate().toString().padStart(2, '0')}/${(startDate.getMonth() + 1).toString().padStart(2, '0')} - ${endDate.getDate().toString().padStart(2, '0')}/${(endDate.getMonth() + 1).toString().padStart(2, '0')}`
+            );
+
+            // Load salary data
+            const data = await payrollService.getMonthlySalary(Number(userId), month, year);
+            if (data && data.totalAmount) {
+                setCurrentMonthSalary(data.totalAmount);
+            }
+        } catch (error) {
+            console.log('Error loading salary:', error);
+            // Không hiển thị lỗi, chỉ để số tiền null
+        }
+    };
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -41,16 +73,14 @@ const HomeScreen = () => {
                 router.push('/function/attendance');
                 //alert('Chức năng chấm công đang phát triển');
                 break;
-            case '2': // Lịch làm việc
-                router.push('/function/shift-schedule?tab=assignments&readOnly=true');
+            case '2': // Lịch làm việc - Xem lịch của chính mình
+                router.push('/function/my-schedule');
                 break;
-            case '3': // Đăng ký nghỉ
-                // router.push('/leave-request');
-                alert('Chức năng đăng ký nghỉ đang phát triển');
+            case '3': // Đăng ký nghỉ - Xin nghỉ phép
+                router.push('/function/leave-request');
                 break;
-            case '4': // Kỳ lương
-                // router.push('/salary');
-                alert('Chức năng kỳ lương đang phát triển');
+            case '4': // Kỳ lương - Xem bảng lương tháng
+                router.push('/function/monthly-salary');
                 break;
             case '5': // Bảng tin
                 // router.push('/news');
@@ -85,7 +115,7 @@ const HomeScreen = () => {
             id: '4',
             icon: '💰',
             title: 'Kỳ lương',
-            subtitle: '01/11 - 30/11',
+            subtitle: salaryPeriod || 'Đang tải...',
             color: '#10b981',
         },
         {
@@ -175,7 +205,11 @@ const HomeScreen = () => {
                                     <Text style={styles.actionTitle}>{action.title}</Text>
                                     <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
                                     {action.id === '4' && (
-                                        <Text style={styles.salaryAmount}>2,052,190 đ</Text>
+                                        <Text style={styles.salaryAmount}>
+                                            {currentMonthSalary !== null
+                                                ? `${currentMonthSalary.toLocaleString('vi-VN')} đ`
+                                                : 'Đang tải...'}
+                                        </Text>
                                     )}
                                 </View>
                             )}
